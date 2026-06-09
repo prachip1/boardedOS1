@@ -1,0 +1,21 @@
+{
+  "name": "Boarded - Client Management for Freelancers",
+  "short_name": "Boarded",
+  "description": "Manage your entire client workflow from onboarding to delivery in one clean workspace built for freelancers and indie founders.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#6366f1",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/boardedi.png",
+      "sizes": "16x16 32x32 48x48 192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity", "utilities"],
+  "lang": "en",
+  "dir": "ltr"
+}

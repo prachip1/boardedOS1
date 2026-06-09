@@ -1,0 +1,32 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://boarded.vercel.app/sitemap.xml
+
+# Disallow private areas
+Disallow: /api/
+Disallow: /_next/
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /clients/
+Disallow: /contracts/
+Disallow: /invoices/
+Disallow: /time-tracking/
+Disallow: /timesheets/
+Disallow: /previews/
+Disallow: /files/
+Disallow: /notifications/
+Disallow: /collaboration/
+Disallow: /tasks/
+Disallow: /client-portal/
+
+# Allow public pages
+Allow: /
+Allow: /features
+Allow: /pricing
+Allow: /about
+Allow: /demo
+Allow: /auth/login
+Allow: /auth/signup
+Allow: /auth/forgot-password
