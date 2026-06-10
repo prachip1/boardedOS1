@@ -5,6 +5,7 @@ import TaskColumn from '../../components/Tasks/TaskColumn'
 import { FiPlus, FiFilter, FiSearch, FiX, FiLoader, FiSave } from 'react-icons/fi'
 import { getTaskColumns, getTasks, createTask, updateTask, deleteTask, moveTask, syncTaskStatusWithColumns } from '../../lib/api/tasks'
 import { getClients } from '../../lib/api/clients'
+import { getProjects } from '../../lib/api/projects'
 import { useTheme } from '../../contexts/ThemeContext'
 
 export default function Tasks() {
@@ -12,6 +13,7 @@ export default function Tasks() {
   const [columns, setColumns] = useState([])
   const [tasks, setTasks] = useState([])
   const [clients, setClients] = useState([])
+  const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [showTaskModal, setShowTaskModal] = useState(false)
@@ -87,14 +89,16 @@ export default function Tasks() {
     const loadData = async () => {
       try {
         setLoading(true)
-        const [columnsData, tasksData, clientsData] = await Promise.all([
+        const [columnsData, tasksData, clientsData, projectsData] = await Promise.all([
           getTaskColumns(),
           getTasks(),
           getClients(),
+          getProjects(),
         ])
         setColumns(columnsData)
         setTasks(tasksData)
         setClients(clientsData)
+        setProjects(projectsData)
         
         // Sync task status with columns after loading
         await syncTaskStatus()
@@ -463,22 +467,52 @@ export default function Tasks() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-text-primary mb-2">
-                    Client (Optional)
-                  </label>
-                  <select
-                    value={taskForm.client_id}
-                    onChange={(e) => setTaskForm({ ...taskForm, client_id: e.target.value })}
-                    className="select"
-                  >
-                    <option value="">No client</option>
-                    {clients.map(client => (
-                      <option key={client.id} value={client.id}>
-                        {client.name}
-                      </option>
-                    ))}
-                  </select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-text-primary mb-2">
+                      Project (Optional)
+                    </label>
+                    <select
+                      value={taskForm.project_id}
+                      onChange={(e) => {
+                        const projectId = e.target.value
+                        // Picking a project auto-fills its client (a project
+                        // already belongs to one), keeping the two consistent.
+                        const proj = projects.find(p => p.id === projectId)
+                        setTaskForm({
+                          ...taskForm,
+                          project_id: projectId,
+                          client_id: proj?.client_id ?? taskForm.client_id,
+                        })
+                      }}
+                      className="select"
+                    >
+                      <option value="">No project</option>
+                      {projects.map(project => (
+                        <option key={project.id} value={project.id}>
+                          {project.name}{project.client?.name ? ` — ${project.client.name}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-text-primary mb-2">
+                      Client (Optional)
+                    </label>
+                    <select
+                      value={taskForm.client_id}
+                      onChange={(e) => setTaskForm({ ...taskForm, client_id: e.target.value })}
+                      className="select"
+                    >
+                      <option value="">No client</option>
+                      {clients.map(client => (
+                        <option key={client.id} value={client.id}>
+                          {client.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
                 <div>
