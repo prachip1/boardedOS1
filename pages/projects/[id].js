@@ -1,17 +1,25 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Link from 'next/link'
 import Layout from '../../components/Layout'
 import {
   FiArrowLeft, FiLoader, FiAlertCircle, FiUserPlus, FiTrash2, FiMail,
-  FiFolder, FiCalendar, FiDollarSign, FiClock, FiEdit2
+  FiFolder, FiCalendar, FiDollarSign, FiClock, FiEdit2,
+  FiUpload, FiFile, FiDownload, FiTrello
 } from 'react-icons/fi'
 import {
   getProject, deleteProject, getProjectMembers, addProjectMember,
   updateProjectMemberRole, removeProjectMember, notifyMemberInvited
 } from '../../lib/api/projects'
+import { getFiles, uploadAndCreateFile, deleteFileComplete } from '../../lib/api/files'
 import { useAuth } from '../../contexts/AuthContext'
+
+const formatSize = (bytes = 0) => {
+  if (bytes < 1024) return bytes + ' B'
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+}
 
 const ROLES = ['owner', 'admin', 'member', 'viewer']
 
@@ -37,14 +45,21 @@ export default function ProjectDetail() {
   const [inviting, setInviting] = useState(false)
   const [inviteError, setInviteError] = useState(null)
 
+  const [files, setFiles] = useState([])
+  const [uploadingFile, setUploadingFile] = useState(false)
+  const fileInputRef = useRef(null)
+
   const isOwner = project && user && project.user_id === user.id
 
   const load = useCallback(async () => {
     try {
       setLoading(true)
-      const [proj, mem] = await Promise.all([getProject(id), getProjectMembers(id)])
+      const [proj, mem, fls] = await Promise.all([
+        getProject(id), getProjectMembers(id), getFiles({ projectId: id }),
+      ])
       setProject(proj)
       setMembers(mem)
+      setFiles(fls)
     } catch (err) {
       setError(err.message)
       console.error('Error loading project:', err)
@@ -52,6 +67,32 @@ export default function ProjectDetail() {
       setLoading(false)
     }
   }, [id])
+
+  const handleUploadToProject = async (fileList) => {
+    const arr = Array.from(fileList || [])
+    if (!arr.length) return
+    setUploadingFile(true)
+    try {
+      for (const file of arr) {
+        await uploadAndCreateFile(file, { projectId: id, clientId: project?.client_id || null })
+      }
+      setFiles(await getFiles({ projectId: id }))
+    } catch (err) {
+      alert(err.message || 'Upload failed. Make sure the "files" storage bucket exists (run files-collab.sql).')
+    } finally {
+      setUploadingFile(false)
+    }
+  }
+
+  const handleDeleteFile = async (fileId) => {
+    if (!confirm('Delete this file?')) return
+    try {
+      await deleteFileComplete(fileId)
+      setFiles((prev) => prev.filter((f) => f.id !== fileId))
+    } catch (err) {
+      alert(err.message || 'Could not delete file.')
+    }
+  }
 
   useEffect(() => {
     if (id) load()
@@ -167,11 +208,16 @@ export default function ProjectDetail() {
                 )}
               </div>
             </div>
-            {isOwner && (
-              <button onClick={handleDeleteProject} className="btn btn-secondary text-red-500 shrink-0">
-                <FiTrash2 size={16} /> Delete
-              </button>
-            )}
+            <div className="flex items-center gap-2 shrink-0">
+              <Link href={`/tasks/${id}`} className="btn btn-secondary">
+                <FiTrello size={16} /> Open Board
+              </Link>
+              {isOwner && (
+                <button onClick={handleDeleteProject} className="btn btn-secondary text-red-500">
+                  <FiTrash2 size={16} /> Delete
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Overview */}
@@ -307,6 +353,53 @@ export default function ProjectDetail() {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Files */}
+          <div className="card space-y-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-text-primary">Files</h2>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="btn btn-secondary btn-sm"
+                disabled={uploadingFile}
+              >
+                {uploadingFile ? <FiLoader className="animate-spin" size={15} /> : <FiUpload size={15} />}
+                Upload
+              </button>
+              <input
+                ref={fileInputRef} type="file" multiple className="hidden"
+                onChange={(e) => { handleUploadToProject(e.target.files); e.target.value = '' }}
+              />
+            </div>
+
+            {files.length === 0 ? (
+              <p className="text-sm text-text-tertiary py-4 text-center">
+                No files yet. Upload one here, or tag a file to this project from the Files page.
+              </p>
+            ) : (
+              <div className="divide-y divide-border">
+                {files.map((f) => (
+                  <div key={f.id} className="flex items-center justify-between py-3 gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <FiFile className="text-accent flex-shrink-0" size={18} />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-text-primary truncate">{f.name}</p>
+                        <p className="text-xs text-text-tertiary">{formatSize(f.size)}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <a href={f.public_url} target="_blank" rel="noopener noreferrer" className="p-2 text-text-tertiary hover:text-text-primary" title="Download">
+                        <FiDownload size={15} />
+                      </a>
+                      <button onClick={() => handleDeleteFile(f.id)} className="p-2 text-text-tertiary hover:text-red-500" title="Delete">
+                        <FiTrash2 size={15} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </Layout>
