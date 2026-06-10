@@ -1,7 +1,7 @@
 import { FiClock, FiMessageSquare, FiTrash2, FiEdit, FiAlertCircle } from 'react-icons/fi'
 import { format } from 'date-fns'
 
-export default function TaskCard({ task, onEdit, onDelete }) {
+export default function TaskCard({ task, onEdit, onDelete, canEdit = true, canDelete = true }) {
   const priorityColors = {
     low: 'bg-gray-100/80 text-gray-600 border border-gray-200',
     medium: 'bg-blue-100/80 text-blue-600 border border-blue-200',
@@ -10,15 +10,20 @@ export default function TaskCard({ task, onEdit, onDelete }) {
   }
 
   const handleDragStart = (e) => {
+    if (!canEdit) {
+      // Members can't move cards that aren't theirs — block the drag.
+      e.preventDefault()
+      return
+    }
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('taskId', task.id)
   }
 
   return (
     <div
-      draggable
+      draggable={canEdit}
       onDragStart={handleDragStart}
-      className="task-card bg-background-elevated border border-border rounded-lg p-4 mb-3 cursor-move hover:border-accent/50 hover:shadow-lg hover:shadow-accent/10 transition-all group hover:scale-[1.02]"
+      className={`task-card bg-background-elevated border border-border rounded-lg p-4 mb-3 transition-all group hover:border-accent/50 hover:shadow-lg hover:shadow-accent/10 hover:scale-[1.02] ${canEdit ? 'cursor-move' : 'cursor-pointer'}`}
     >
       {/* Header */}
       <div className="flex items-start justify-between mb-2">
@@ -29,15 +34,19 @@ export default function TaskCard({ task, onEdit, onDelete }) {
           <button
             onClick={() => onEdit(task)}
             className="p-1 text-text-tertiary hover:text-accent transition-colors"
+            title={canEdit ? 'Edit' : 'View'}
           >
             <FiEdit size={14} />
           </button>
-          <button
-            onClick={() => onDelete(task.id)}
-            className="p-1 text-text-tertiary hover:text-red-500 transition-colors"
-          >
-            <FiTrash2 size={14} />
-          </button>
+          {canDelete && (
+            <button
+              onClick={() => onDelete(task.id)}
+              className="p-1 text-text-tertiary hover:text-red-500 transition-colors"
+              title="Delete"
+            >
+              <FiTrash2 size={14} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -99,13 +108,25 @@ export default function TaskCard({ task, onEdit, onDelete }) {
           )}
         </div>
 
-        {/* Comments Count */}
-        {task.comments && task.comments[0]?.count > 0 && (
-          <div className="flex items-center gap-1 text-text-tertiary">
-            <FiMessageSquare size={12} />
-            <span>{task.comments[0].count}</span>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Comments Count */}
+          {task.comments && task.comments[0]?.count > 0 && (
+            <div className="flex items-center gap-1 text-text-tertiary">
+              <FiMessageSquare size={12} />
+              <span>{task.comments[0].count}</span>
+            </div>
+          )}
+
+          {/* Assignee */}
+          {task.assignee && (
+            <div
+              className="w-6 h-6 rounded-full bg-accent/20 text-accent flex items-center justify-center text-[10px] font-semibold uppercase"
+              title={`Assigned to ${task.assignee}`}
+            >
+              {task.assignee.charAt(0)}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Overdue indicator */}

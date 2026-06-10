@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { FiPlus, FiMoreVertical } from 'react-icons/fi'
 import TaskCard from './TaskCard'
 
-export default function TaskColumn({ column, tasks, onAddTask, onEditTask, onDeleteTask, onDrop }) {
+export default function TaskColumn({ column, tasks, onAddTask, onEditTask, onDeleteTask, onDrop, canAdd = true, canEditTask, canDeleteTask }) {
   const [isDragOver, setIsDragOver] = useState(false)
 
   const handleDragOver = (e) => {
@@ -75,11 +75,14 @@ export default function TaskColumn({ column, tasks, onAddTask, onEditTask, onDel
               task={task}
               onEdit={onEditTask}
               onDelete={onDeleteTask}
+              canEdit={canEditTask ? canEditTask(task) : true}
+              canDelete={canDeleteTask ? canDeleteTask(task) : true}
             />
           ))}
         </div>
 
         {/* Add Task Button */}
+        {canAdd && (
         <button
           onClick={() => onAddTask(column.id)}
           className="w-full mt-3 py-3 px-4 border-2 border-dashed rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 hover:shadow-lg"
@@ -102,6 +105,7 @@ export default function TaskColumn({ column, tasks, onAddTask, onEditTask, onDel
           <FiPlus size={16} />
           Add Task
         </button>
+        )}
       </div>
     </div>
   )
