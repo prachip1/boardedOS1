@@ -9,7 +9,7 @@ import {
 } from 'react-icons/fi'
 import {
   getProject, deleteProject, getProjectMembers, addProjectMember,
-  updateProjectMemberRole, removeProjectMember
+  updateProjectMemberRole, removeProjectMember, notifyMemberInvited
 } from '../../lib/api/projects'
 import { useAuth } from '../../contexts/AuthContext'
 
@@ -64,6 +64,13 @@ export default function ProjectDetail() {
     setInviteError(null)
     try {
       await addProjectMember(id, inviteEmail, inviteRole)
+      // Best-effort email — don't block or fail the invite on this.
+      notifyMemberInvited({
+        to: inviteEmail.trim().toLowerCase(),
+        projectName: project?.name,
+        role: inviteRole,
+        inviterEmail: user?.email,
+      })
       setInviteEmail('')
       setInviteRole('member')
       const mem = await getProjectMembers(id)
