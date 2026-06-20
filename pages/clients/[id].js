@@ -1,48 +1,105 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Link from 'next/link'
 import Layout from '../../components/Layout'
-import { FiArrowLeft, FiEdit2, FiTrash2, FiMail, FiPhone, FiGlobe, FiMapPin, FiDollarSign, FiBriefcase, FiFileText, FiClock } from 'react-icons/fi'
+import { FiArrowLeft, FiEdit2, FiTrash2, FiMail, FiPhone, FiGlobe, FiMapPin, FiDollarSign, FiBriefcase, FiFileText, FiClock, FiLoader, FiAlertCircle } from 'react-icons/fi'
 import { format } from 'date-fns'
+import { getClient, getClientStats, deleteClient } from '../../lib/api/clients'
 
 export default function ClientDetail() {
   const router = useRouter()
   const { id } = router.query
   const [activeTab, setActiveTab] = useState('overview') // overview, projects, invoices, contracts, files
 
-  // Mock client data - will be replaced with Firebase data
-  const client = {
-    id: '1',
-    name: 'Acme Corporation',
-    email: 'contact@acme.com',
-    phone: '+1 (555) 123-4567',
-    company: 'Acme Corp',
-    website: 'https://acme.com',
-    address: '123 Main Street, San Francisco, CA 94105',
-    notes: 'Great client to work with. Prefers weekly updates.',
-    activeProjects: 3,
-    totalProjects: 12,
-    outstandingAmount: 5400,
-    totalPaid: 45600,
-    status: 'active',
-    createdAt: new Date('2024-01-15'),
-    lastContact: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2),
+  const [client, setClient] = useState(null)
+  const [stats, setStats] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    if (!id) return // wait for the router to populate the dynamic param
+
+    const fetchClient = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const data = await getClient(id)
+        setClient(data)
+
+        // Stats are best-effort: related tables may not exist yet.
+        try {
+          const clientStats = await getClientStats(id)
+          setStats(clientStats)
+        } catch (statsErr) {
+          console.warn('Could not load client stats:', statsErr)
+          setStats(null)
+        }
+      } catch (err) {
+        console.error('Error fetching client:', err)
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchClient()
+  }, [id])
+
+  const handleDelete = async () => {
+    if (!confirm('Delete this client? This cannot be undone.')) return
+    try {
+      await deleteClient(id)
+      router.push('/clients')
+    } catch (err) {
+      alert('Failed to delete client: ' + err.message)
+    }
   }
 
-  const projects = [
-    { id: '1', name: 'Website Redesign', status: 'In Progress', deadline: new Date('2025-11-15') },
-    { id: '2', name: 'Mobile App', status: 'In Review', deadline: new Date('2025-12-01') },
-    { id: '3', name: 'Brand Identity', status: 'In Progress', deadline: new Date('2025-11-30') },
-  ]
+  // Loading state
+  if (loading) {
+    return (
+      <Layout>
+        <div className="text-center py-20">
+          <FiLoader className="animate-spin text-accent mx-auto mb-4" size={32} />
+          <p className="text-text-secondary">Loading client...</p>
+        </div>
+      </Layout>
+    )
+  }
 
-  const invoices = [
-    { id: 'INV-1024', amount: 2400, status: 'Pending', dueDate: new Date('2025-11-10') },
-    { id: 'INV-1020', amount: 3000, status: 'Paid', paidDate: new Date('2025-10-05') },
-    { id: 'INV-1015', amount: 1800, status: 'Paid', paidDate: new Date('2025-09-20') },
-  ]
+  // Error / not-found state
+  if (error || !client) {
+    return (
+      <Layout>
+        <div className="text-center py-20">
+          <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <FiAlertCircle className="text-red-500" size={32} />
+          </div>
+          <h3 className="text-lg font-medium text-text-primary mb-2">
+            {error ? 'Error loading client' : 'Client not found'}
+          </h3>
+          <p className="text-text-secondary mb-6">
+            {error || "This client doesn't exist or you don't have access to it."}
+          </p>
+          <Link href="/clients" className="btn btn-primary inline-flex">
+            <FiArrowLeft size={16} />
+            Back to Clients
+          </Link>
+        </div>
+      </Layout>
+    )
+  }
 
-  const initials = client.name
+  const activeProjects = stats?.activeProjects ?? 0
+  const totalProjects = stats?.totalProjects ?? 0
+  const outstandingAmount = stats ? Math.max(stats.totalInvoiced - 0, 0) : 0
+  const totalPaid = stats?.totalInvoiced ?? 0
+
+  const projects = []
+  const invoices = []
+
+  const initials = (client.name || '?')
     .split(' ')
     .map(n => n[0])
     .join('')
@@ -79,7 +136,7 @@ export default function ClientDetail() {
                 <FiEdit2 size={16} />
                 Edit
               </button>
-              <button className="btn btn-secondary text-red-500 hover:bg-red-500/10">
+              <button onClick={handleDelete} className="btn btn-secondary text-red-500 hover:bg-red-500/10">
                 <FiTrash2 size={16} />
               </button>
             </div>
@@ -134,28 +191,28 @@ export default function ClientDetail() {
                   <FiBriefcase size={16} className="text-blue-500" />
                   <p className="text-xs text-text-tertiary">Active Projects</p>
                 </div>
-                <p className="text-2xl font-semibold text-text-primary">{client.activeProjects}</p>
+                <p className="text-2xl font-semibold text-text-primary">{activeProjects}</p>
               </div>
               <div className="card">
                 <div className="flex items-center gap-2 mb-2">
                   <FiFileText size={16} className="text-purple-500" />
                   <p className="text-xs text-text-tertiary">Total Projects</p>
                 </div>
-                <p className="text-2xl font-semibold text-text-primary">{client.totalProjects}</p>
+                <p className="text-2xl font-semibold text-text-primary">{totalProjects}</p>
               </div>
               <div className="card">
                 <div className="flex items-center gap-2 mb-2">
                   <FiDollarSign size={16} className="text-yellow-500" />
                   <p className="text-xs text-text-tertiary">Outstanding</p>
                 </div>
-                <p className="text-2xl font-semibold text-yellow-500">${client.outstandingAmount.toLocaleString()}</p>
+                <p className="text-2xl font-semibold text-yellow-500">${outstandingAmount.toLocaleString()}</p>
               </div>
               <div className="card">
                 <div className="flex items-center gap-2 mb-2">
                   <FiDollarSign size={16} className="text-green-500" />
                   <p className="text-xs text-text-tertiary">Total Paid</p>
                 </div>
-                <p className="text-2xl font-semibold text-green-500">${client.totalPaid.toLocaleString()}</p>
+                <p className="text-2xl font-semibold text-green-500">${totalPaid.toLocaleString()}</p>
               </div>
             </div>
           </div>
@@ -190,6 +247,9 @@ export default function ClientDetail() {
                 <div className="card">
                   <h3 className="text-lg font-semibold text-text-primary mb-4">Active Projects</h3>
                   <div className="space-y-3">
+                    {projects.length === 0 && (
+                      <p className="text-sm text-text-tertiary">No projects yet for this client.</p>
+                    )}
                     {projects.map(project => (
                       <div key={project.id} className="flex items-center justify-between p-3 rounded-lg bg-background-elevated hover:bg-background-tertiary transition-colors">
                         <div className="flex-1">
@@ -208,6 +268,9 @@ export default function ClientDetail() {
                 <div className="card">
                   <h3 className="text-lg font-semibold text-text-primary mb-4">Recent Invoices</h3>
                   <div className="space-y-3">
+                    {invoices.length === 0 && (
+                      <p className="text-sm text-text-tertiary">No invoices yet for this client.</p>
+                    )}
                     {invoices.map(invoice => (
                       <div key={invoice.id} className="flex items-center justify-between p-3 rounded-lg bg-background-elevated hover:bg-background-tertiary transition-colors">
                         <div className="flex-1">
