@@ -1,13 +1,24 @@
-import { FiClock, FiMessageSquare, FiTrash2, FiEdit, FiAlertCircle } from 'react-icons/fi'
+import { FiClock, FiMessageSquare, FiTrash2, FiEdit, FiAlertCircle, FiCheckSquare, FiBookmark, FiZap, FiAlertOctagon } from 'react-icons/fi'
 import { format } from 'date-fns'
+
+// Jira-style issue type glyph + color (shown as a small chip on each card).
+const ISSUE_TYPE_META = {
+  task:  { icon: FiCheckSquare,  color: '#5e6ad2', label: 'Task' },
+  bug:   { icon: FiAlertOctagon, color: '#ef4444', label: 'Bug' },
+  story: { icon: FiBookmark,     color: '#34d399', label: 'Story' },
+  epic:  { icon: FiZap,          color: '#b8a6ff', label: 'Epic' },
+}
 
 export default function TaskCard({ task, onEdit, onDelete, canEdit = true, canDelete = true }) {
   const priorityColors = {
-    low: 'bg-gray-100/80 text-gray-600 border border-gray-200',
-    medium: 'bg-blue-100/80 text-blue-600 border border-blue-200',
-    high: 'bg-orange-100/80 text-orange-600 border border-orange-200',
-    urgent: 'bg-red-100/80 text-red-600 border border-red-200 shadow-sm shadow-red-200/50',
+    low: 'bg-background-tertiary text-text-secondary border border-border',
+    medium: 'bg-accent-lavender text-black font-semibold',
+    high: 'bg-accent-coral text-black font-semibold',
+    urgent: 'bg-accent-red text-white font-semibold shadow-sm shadow-red-500/30',
   }
+
+  const issueMeta = ISSUE_TYPE_META[task.issue_type] || ISSUE_TYPE_META.task
+  const IssueIcon = issueMeta.icon
 
   const handleDragStart = (e) => {
     if (!canEdit) {
@@ -27,9 +38,18 @@ export default function TaskCard({ task, onEdit, onDelete, canEdit = true, canDe
     >
       {/* Header */}
       <div className="flex items-start justify-between mb-2">
-        <h4 className="text-sm font-medium text-text-primary flex-1 pr-2">
-          {task.title}
-        </h4>
+        <div className="flex items-start gap-2 flex-1 pr-2 min-w-0">
+          <span
+            className="mt-0.5 flex-shrink-0 inline-flex items-center justify-center w-5 h-5 rounded"
+            style={{ backgroundColor: `${issueMeta.color}22`, color: issueMeta.color }}
+            title={issueMeta.label}
+          >
+            <IssueIcon size={12} />
+          </span>
+          <h4 className="text-sm font-medium text-text-primary min-w-0">
+            {task.title}
+          </h4>
+        </div>
         <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
           <button
             onClick={() => onEdit(task)}
@@ -98,6 +118,16 @@ export default function TaskCard({ task, onEdit, onDelete, canEdit = true, canDe
           <span className={`px-2 py-0.5 rounded ${priorityColors[task.priority]}`}>
             {task.priority}
           </span>
+
+          {/* Story points */}
+          {(task.story_points || task.story_points === 0) && (
+            <span
+              className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-background-tertiary text-text-secondary border border-border font-semibold"
+              title={`${task.story_points} story point${task.story_points === 1 ? '' : 's'}`}
+            >
+              {task.story_points}
+            </span>
+          )}
 
           {/* Due Date */}
           {task.due_date && (

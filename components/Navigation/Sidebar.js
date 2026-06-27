@@ -114,7 +114,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
         {/* Footer */}
         <div className="p-4 border-t border-border">
           <div className={`flex items-center gap-4 p-2 rounded-md cursor-pointer transition-all duration-base hover:bg-background-elevated ${collapsed ? 'md:justify-center' : ''}`}>
-            <div className="w-8 h-8 rounded-full bg-accent text-white flex items-center justify-center font-semibold text-sm flex-shrink-0">
+            <div className="w-8 h-8 rounded-full bg-accent text-black flex items-center justify-center font-semibold text-sm flex-shrink-0">
               {user?.email?.charAt(0).toUpperCase() || 'U'}
             </div>
             <div className={`flex-1 min-w-0 ${collapsed ? 'md:hidden' : ''}`}>

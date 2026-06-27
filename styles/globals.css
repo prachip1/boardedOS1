@@ -12,373 +12,6 @@
     @apply bg-background text-text-primary font-sans antialiased;
   }
 
-  /* Light Mode Styles - Beautiful & Clean */
-  :root.light {
-    --background: #fafafa;
-    --background-secondary: #ffffff;
-    --background-elevated: #f5f5f5;
-    --background-tertiary: #eeeeee;
-    --text-primary: #0a0a0a;
-    --text-secondary: #525252;
-    --text-tertiary: #a3a3a3;
-    --border: #e5e5e5;
-    --border-hover: #d4d4d4;
-  }
-
-  html.light body {
-    background: #fafafa;
-    color: #0a0a0a;
-  }
-
-  /* Update backgrounds for light mode */
-  html.light .bg-background {
-    background-color: #fafafa;
-  }
-
-  html.light .bg-background-secondary {
-    background-color: #ffffff;
-  }
-
-  html.light .bg-background-elevated {
-    background-color: #f5f5f5;
-  }
-
-  html.light .bg-background-tertiary {
-    background-color: #eeeeee;
-  }
-
-  /* Update text colors for light mode */
-  html.light .text-text-primary {
-    color: #0a0a0a;
-  }
-
-  html.light .text-text-secondary {
-    color: #525252;
-  }
-
-  html.light .text-text-tertiary {
-    color: #a3a3a3;
-  }
-
-  /* Update borders for light mode */
-  html.light .border-border {
-    border-color: #e5e5e5;
-  }
-
-  html.light .border-border-hover {
-    border-color: #d4d4d4;
-  }
-
-  /* Light mode card shadows */
-  html.light .card {
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.05);
-  }
-
-  html.light .card:hover {
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.05);
-  }
-
-  /* Light mode buttons */
-  html.light .btn-primary {
-    background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
-    color: #ffffff;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  }
-
-  html.light .btn-primary:hover {
-    background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  }
-
-  html.light .btn-secondary {
-    background-color: #ffffff;
-    border-color: #e5e5e5;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  }
-
-  html.light .btn-secondary:hover {
-    background-color: #f5f5f5;
-    border-color: #d4d4d4;
-  }
-
-  /* Light mode inputs */
-  html.light .input,
-  html.light .textarea,
-  html.light .select {
-    background-color: #ffffff;
-    border-color: #e5e5e5;
-    color: #0a0a0a;
-  }
-
-  html.light .input:hover,
-  html.light .textarea:hover,
-  html.light .select:hover {
-    border-color: #d4d4d4;
-  }
-
-  html.light .input:focus,
-  html.light .textarea:focus,
-  html.light .select:focus {
-    border-color: #a3a3a3;
-    background-color: #ffffff;
-    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
-  }
-
-  /* Light mode badges */
-  html.light .badge {
-    background-color: #f5f5f5;
-    border-color: #e5e5e5;
-    color: #525252;
-  }
-
-  /* Light mode sidebar */
-  html.light aside {
-    background-color: #ffffff;
-    border-right-color: #e5e5e5;
-    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.03);
-  }
-
-  /* Light mode header */
-  html.light header {
-    background-color: #ffffff;
-    border-bottom-color: #e5e5e5;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  }
-
-  /* Light mode scrollbar */
-  html.light ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-
-  html.light ::-webkit-scrollbar-track {
-    background: #fafafa;
-    border-radius: 4px;
-  }
-
-  html.light ::-webkit-scrollbar-thumb {
-    background: #d4d4d4;
-    border-radius: 4px;
-  }
-
-  html.light ::-webkit-scrollbar-thumb:hover {
-    background: #a3a3a3;
-  }
-
-  html.light ::-webkit-scrollbar-corner {
-    background: #fafafa;
-  }
-
-  /* Prevent black shadow on right edge */
-  html.light .overflow-x-auto {
-    scrollbar-width: thin;
-    scrollbar-color: #d4d4d4 #fafafa;
-  }
-
-  html.light .overflow-x-auto::-webkit-scrollbar {
-    height: 8px;
-    background: transparent;
-  }
-
-  html.light .overflow-x-auto::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  html.light .overflow-x-auto::-webkit-scrollbar-thumb {
-    background: #d4d4d4;
-    border-radius: 4px;
-  }
-
-  html.light .overflow-x-auto::-webkit-scrollbar-thumb:hover {
-    background: #a3a3a3;
-  }
-
-  /* Force remove any shadow effects */
-  html.light .overflow-x-auto {
-    box-shadow: none !important;
-    background: transparent !important;
-  }
-
-  html.light .overflow-x-auto::after {
-    display: none !important;
-  }
-
-  /* Custom scrollbar for light mode - thin and clean */
-  html.light .overflow-x-auto {
-    scrollbar-width: thin !important; /* Firefox */
-    scrollbar-color: #e5e5e5 transparent !important; /* Firefox */
-  }
-
-  html.light .overflow-x-auto::-webkit-scrollbar {
-    height: 6px !important; /* Chrome, Safari, Opera */
-    background: transparent !important;
-  }
-
-  html.light .overflow-x-auto::-webkit-scrollbar-track {
-    background: transparent !important;
-    border-radius: 3px !important;
-  }
-
-  html.light .overflow-x-auto::-webkit-scrollbar-thumb {
-    background: #e5e5e5 !important;
-    border-radius: 3px !important;
-    border: none !important;
-  }
-
-  html.light .overflow-x-auto::-webkit-scrollbar-thumb:hover {
-    background: #d4d4d4 !important;
-  }
-
-  /* Force remove any potential shadow from main container */
-  html.light main {
-    box-shadow: none !important;
-  }
-
-  html.light .flex-1 {
-    box-shadow: none !important;
-  }
-
-  /* Remove any potential shadow from the entire page */
-  html.light body {
-    box-shadow: none !important;
-  }
-
-  html.light html {
-    box-shadow: none !important;
-  }
-
-  /* Nuclear option - remove ALL shadows and ensure clean background */
-  html.light * {
-    box-shadow: none !important;
-  }
-
-  html.light *::before,
-  html.light *::after {
-    box-shadow: none !important;
-  }
-
-  /* Custom scrollbar - very subtle */
-  html.light .overflow-x-auto {
-    scrollbar-width: thin !important;
-    scrollbar-color: #d4d4d4 #fafafa !important;
-  }
-
-  html.light .overflow-x-auto::-webkit-scrollbar {
-    height: 4px !important;
-    background: #fafafa !important;
-  }
-
-  html.light .overflow-x-auto::-webkit-scrollbar-track {
-    background: #fafafa !important;
-    border-radius: 2px !important;
-  }
-
-  html.light .overflow-x-auto::-webkit-scrollbar-thumb {
-    background: #d4d4d4 !important;
-    border-radius: 2px !important;
-    border: none !important;
-  }
-
-  html.light .overflow-x-auto::-webkit-scrollbar-thumb:hover {
-    background: #a3a3a3 !important;
-  }
-
-  /* Remove any potential shadow from scrollbar */
-  html.light .overflow-x-auto::-webkit-scrollbar-corner {
-    background: #fafafa !important;
-  }
-
-  /* Light mode selection */
-  html.light ::selection {
-    background: rgba(0, 0, 0, 0.1);
-    color: #0a0a0a;
-  }
-
-  /* Light mode Kanban Board - High Contrast */
-  html.light .task-column-header {
-    background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
-    border: 2px solid #e5e5e5 !important;
-    padding: 12px 16px !important;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  }
-
-  html.light .task-column-drop-zone {
-    background: #ffffff !important;
-    border: 2px solid #e5e5e5 !important;
-  }
-
-  html.light .task-card {
-    background: #ffffff !important;
-    border: 2px solid #e5e5e5 !important;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  }
-
-  html.light .task-card:hover {
-    border-color: #6366f1 !important;
-    box-shadow: 0 8px 16px rgba(99, 102, 241, 0.15) !important;
-  }
-
-
-  /* Light mode stats cards - soft pastel */
-  html.light .stats-card-purple {
-    background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%) !important;
-    border: none !important;
-    box-shadow: 0 2px 8px rgba(243, 232, 255, 0.2) !important;
-  }
-
-  html.light .stats-card-blue {
-    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%) !important;
-    border: none !important;
-    box-shadow: 0 2px 8px rgba(219, 234, 254, 0.2) !important;
-  }
-
-  html.light .stats-card-green {
-    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%) !important;
-    border: none !important;
-    box-shadow: 0 2px 8px rgba(209, 250, 229, 0.2) !important;
-  }
-
-  html.light .stats-card-red {
-    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%) !important;
-    border: none !important;
-    box-shadow: 0 2px 8px rgba(254, 226, 226, 0.2) !important;
-  }
-
-  html.light .stats-card-label {
-    color: #525252 !important;
-    opacity: 0.8;
-  }
-
-  html.light .stats-card-value {
-    color: #0a0a0a !important;
-  }
-
-  /* Light mode priority badges - solid colors */
-  html.light .task-card .bg-gray-500\/20 {
-    background-color: #6b7280 !important;
-    color: #ffffff !important;
-    border: none !important;
-  }
-
-  html.light .task-card .bg-blue-500\/20 {
-    background-color: #3b82f6 !important;
-    color: #ffffff !important;
-    border: none !important;
-  }
-
-  html.light .task-card .bg-orange-500\/20 {
-    background-color: #f97316 !important;
-    color: #ffffff !important;
-    border: none !important;
-  }
-
-  html.light .task-card .bg-red-500\/20 {
-    background-color: #ef4444 !important;
-    color: #ffffff !important;
-    border: none !important;
-  }
-
-  
   /* Scrollbar styling */
   ::-webkit-scrollbar {
     @apply w-2 h-2;
@@ -396,10 +29,41 @@
     @apply bg-border-hover;
   }
 
-  /* Selection */
+  /* Selection — signature accent tint */
   ::selection {
-    @apply bg-white/10 text-white;
+    background: rgba(199, 247, 81, 0.25);
+    color: #ffffff;
   }
+}
+
+/* Accent focus glow for form controls */
+.input:focus,
+.textarea:focus,
+.select:focus {
+  border-color: rgba(199, 247, 81, 0.5) !important;
+  box-shadow: 0 0 0 3px rgba(199, 247, 81, 0.12);
+}
+
+/* Date/time inputs — the native calendar icon is black, which is invisible on
+   our dark inputs. Invert it in dark mode and tint it on hover so it's obvious
+   the field is clickable. Light mode keeps the default dark icon. */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator,
+input[type="month"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(0.85);
+  opacity: 0.65;
+  cursor: pointer;
+  transition: opacity 150ms ease, filter 150ms ease;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover,
+input[type="time"]::-webkit-calendar-picker-indicator:hover,
+input[type="month"]::-webkit-calendar-picker-indicator:hover {
+  /* lime tint on hover */
+  filter: invert(85%) sepia(40%) saturate(900%) hue-rotate(25deg) brightness(105%);
+  opacity: 1;
 }
 
 @layer components {
@@ -410,6 +74,16 @@
 
   .btn-primary {
     @apply bg-white text-black hover:bg-white/90;
+  }
+
+  /* Signature lime action button — the loud, primary CTA */
+  .btn-accent {
+    @apply bg-accent text-black font-semibold hover:bg-accent-hover;
+    box-shadow: 0 2px 12px rgba(199, 247, 81, 0.18);
+  }
+
+  .btn-accent:hover {
+    box-shadow: 0 4px 18px rgba(199, 247, 81, 0.28);
   }
 
   .btn-secondary {
@@ -441,18 +115,31 @@
     @apply w-full px-4 h-9 bg-background-secondary border border-border rounded-md text-text-primary text-sm transition-all duration-base hover:border-border-hover focus:outline-none focus:border-white/30 focus:bg-background appearance-none;
   }
 
-  /* Card Component */
+  /* Card Component — subtle top-down gradient + lift on hover */
   .card {
-    @apply bg-background-secondary border border-border rounded-lg p-6 transition-all duration-base hover:border-border-hover;
+    @apply border border-border rounded-xl p-6 transition-all duration-base;
+    background-image: linear-gradient(180deg, #0d0d0d 0%, #080808 100%);
+  }
+
+  .card:hover {
+    @apply border-border-hover;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   }
 
   .card-elevated {
     @apply bg-background-elevated shadow-md;
   }
 
+  /* Card that glows with the signature accent on hover */
+  .card-accent:hover {
+    border-color: rgba(199, 247, 81, 0.4);
+    box-shadow: 0 10px 30px rgba(199, 247, 81, 0.1);
+  }
+
   /* Badge Component */
   .badge {
-    @apply inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-background-elevated text-text-secondary border border-border;
+    @apply inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-background-elevated text-text-secondary border border-border;
   }
 
   .badge-success {
@@ -469,6 +156,19 @@
 
   .badge-info {
     @apply bg-background-elevated text-text-primary border-accent-blue;
+  }
+
+  /* Solid vibrant pills — the reference look (dark text on bright fill) */
+  .badge-lime {
+    @apply bg-accent-lime text-black border-transparent font-semibold;
+  }
+
+  .badge-coral {
+    @apply bg-accent-coral text-black border-transparent font-semibold;
+  }
+
+  .badge-lavender {
+    @apply bg-accent-lavender text-black border-transparent font-semibold;
   }
 
   /* Status Indicators */

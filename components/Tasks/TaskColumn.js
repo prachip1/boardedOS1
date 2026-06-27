@@ -2,8 +2,21 @@ import { useState } from 'react'
 import { FiPlus, FiMoreVertical } from 'react-icons/fi'
 import TaskCard from './TaskCard'
 
+// Vibrant palette (color-ref) for the standard columns. Custom columns keep
+// whatever color was saved in the DB — we only override the well-known ones.
+const accentForColumn = (name = '') => {
+  const n = name.toLowerCase()
+  if (n.includes('progress')) return '#c7f751'      // lime
+  if (n.includes('review')) return '#ff7a59'        // coral
+  if (n.includes('done') || n.includes('complete')) return '#34d399' // green
+  if (n.includes('blocked')) return '#ef4444'       // red
+  if (n.includes('to do') || n.includes('todo') || n.includes('backlog')) return '#b8a6ff' // lavender
+  return null
+}
+
 export default function TaskColumn({ column, tasks, onAddTask, onEditTask, onDeleteTask, onDrop, canAdd = true, canEditTask, canDeleteTask }) {
   const [isDragOver, setIsDragOver] = useState(false)
+  const color = accentForColumn(column.name) || column.color
 
   const handleDragOver = (e) => {
     e.preventDefault()
@@ -27,20 +40,20 @@ export default function TaskColumn({ column, tasks, onAddTask, onEditTask, onDel
       {/* Column Header */}
       <div className="task-column-header mb-4 flex items-center justify-between px-1">
         <div className="flex items-center gap-3">
-          <div 
-            className="w-2 h-8 rounded-full shadow-lg" 
-            style={{ backgroundColor: column.color, boxShadow: `0 0 15px ${column.color}60` }}
+          <div
+            className="w-2 h-8 rounded-full shadow-lg"
+            style={{ backgroundColor: color, boxShadow: `0 0 15px ${color}60` }}
           />
           <h3 className="font-semibold text-text-primary text-base">
             {column.name}
           </h3>
-          <span 
+          <span
             className="text-xs font-bold px-2.5 py-1 rounded-full"
-            style={{ 
-              backgroundColor: `${column.color}30`,
-              color: column.color,
-              border: `1px solid ${column.color}50`,
-              boxShadow: `0 0 8px ${column.color}30`
+            style={{
+              backgroundColor: `${color}30`,
+              color: color,
+              border: `1px solid ${color}50`,
+              boxShadow: `0 0 8px ${color}30`
             }}
           >
             {tasks.length}
@@ -62,9 +75,9 @@ export default function TaskColumn({ column, tasks, onAddTask, onEditTask, onDel
             : 'bg-background-secondary/30 border-border/30 hover:border-border/50'
         }`}
         style={isDragOver ? {
-          backgroundColor: `${column.color}20`,
-          borderColor: column.color,
-          boxShadow: `0 0 25px ${column.color}50`
+          backgroundColor: `${color}20`,
+          borderColor: color,
+          boxShadow: `0 0 25px ${color}50`
         } : {}}
       >
         {/* Tasks */}
@@ -87,18 +100,18 @@ export default function TaskColumn({ column, tasks, onAddTask, onEditTask, onDel
           onClick={() => onAddTask(column.id)}
           className="w-full mt-3 py-3 px-4 border-2 border-dashed rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 hover:shadow-lg"
           style={{
-            borderColor: `${column.color}50`,
-            color: column.color,
+            borderColor: `${color}50`,
+            color: color,
             backgroundColor: 'transparent'
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = `${column.color}20`
-            e.currentTarget.style.borderColor = column.color
-            e.currentTarget.style.boxShadow = `0 0 15px ${column.color}30`
+            e.currentTarget.style.backgroundColor = `${color}20`
+            e.currentTarget.style.borderColor = color
+            e.currentTarget.style.boxShadow = `0 0 15px ${color}30`
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.backgroundColor = 'transparent'
-            e.currentTarget.style.borderColor = `${column.color}50`
+            e.currentTarget.style.borderColor = `${color}50`
             e.currentTarget.style.boxShadow = 'none'
           }}
         >

@@ -1,12 +1,10 @@
 import { useState } from 'react'
-import { FiSearch, FiBell, FiSettings, FiLogOut, FiUser, FiSun, FiMoon, FiMenu } from 'react-icons/fi'
+import { FiSearch, FiBell, FiSettings, FiLogOut, FiUser, FiMenu } from 'react-icons/fi'
 import { useAuth } from '../../contexts/AuthContext'
-import { useTheme } from '../../contexts/ThemeContext'
 import { useRouter } from 'next/router'
 
 export default function Header({ onMenuClick }) {
   const { user, signOut } = useAuth()
-  const { theme, toggleTheme } = useTheme()
   const router = useRouter()
   const [showUserMenu, setShowUserMenu] = useState(false)
 
@@ -47,15 +45,6 @@ export default function Header({ onMenuClick }) {
 
         {/* Right Side */}
         <div className="flex items-center gap-3">
-          {/* Theme Toggle */}
-          <button
-            onClick={toggleTheme}
-            className="p-2 text-text-secondary hover:text-text-primary hover:bg-background-secondary rounded-md transition-colors"
-            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-          >
-            {theme === 'dark' ? <FiSun size={20} /> : <FiMoon size={20} />}
-          </button>
-
           {/* Notifications */}
           <button className="relative p-2 text-text-secondary hover:text-text-primary hover:bg-background-secondary rounded-md transition-colors">
             <FiBell size={20} />

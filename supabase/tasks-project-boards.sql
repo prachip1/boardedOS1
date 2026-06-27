@@ -49,10 +49,10 @@ SET search_path = public
 AS $$
 BEGIN
   INSERT INTO task_columns (user_id, project_id, name, color, position) VALUES
-    (NEW.user_id, NEW.id, 'To Do',       '#6b7280', 1),
-    (NEW.user_id, NEW.id, 'In Progress', '#3b82f6', 2),
-    (NEW.user_id, NEW.id, 'Review',      '#f59e0b', 3),
-    (NEW.user_id, NEW.id, 'Done',        '#10b981', 4);
+    (NEW.user_id, NEW.id, 'To Do',       '#b8a6ff', 1),
+    (NEW.user_id, NEW.id, 'In Progress', '#c7f751', 2),
+    (NEW.user_id, NEW.id, 'Review',      '#ff7a59', 3),
+    (NEW.user_id, NEW.id, 'Done',        '#34d399', 4);
   RETURN NEW;
 END;
 $$;
@@ -69,10 +69,10 @@ INSERT INTO task_columns (user_id, project_id, name, color, position)
 SELECT p.user_id, p.id, d.name, d.color, d.position
 FROM projects p
 CROSS JOIN (VALUES
-  ('To Do', '#6b7280', 1),
-  ('In Progress', '#3b82f6', 2),
-  ('Review', '#f59e0b', 3),
-  ('Done', '#10b981', 4)
+  ('To Do', '#b8a6ff', 1),
+  ('In Progress', '#c7f751', 2),
+  ('Review', '#ff7a59', 3),
+  ('Done', '#34d399', 4)
 ) AS d(name, color, position)
 WHERE NOT EXISTS (
   SELECT 1 FROM task_columns tc WHERE tc.project_id = p.id

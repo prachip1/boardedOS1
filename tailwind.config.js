@@ -1,6 +1,5 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  darkMode: 'class',
   content: [
     './pages/**/*.{js,jsx}',
     './components/**/*.{js,jsx}',
@@ -14,29 +13,31 @@ module.exports = {
           secondary: '#0a0a0a',
           tertiary: '#111111',
           elevated: '#1a1a1a',
-          light: '#fafafa',
-          'light-secondary': '#ffffff',
-          'light-elevated': '#f5f5f5',
         },
         border: {
           DEFAULT: '#1f1f1f',
           hover: '#2d2d2d',
-          light: '#e5e5e5',
-          'light-hover': '#d4d4d4',
         },
         text: {
           primary: '#ffffff',
           secondary: '#888888',
           tertiary: '#555555',
-          'light-primary': '#0a0a0a',
-          'light-secondary': '#525252',
-          'light-tertiary': '#a3a3a3',
         },
-        // Only for tiny accents (dots, small icons)
+        // Signature accent + vibrant secondary palette (from color-ref).
+        // `accent` (no suffix) is the app-wide signature color — it powers
+        // active nav, focus rings, avatars, notification dots, links, etc.
         accent: {
+          DEFAULT: '#c7f751', // signature lime
+          hover: '#d6fb6e',
+          muted: '#a9d63f',
+          // Secondary palette — use as solid pills / tints in dark mode
+          lime: '#c7f751',
+          coral: '#ff7a59',
+          lavender: '#b8a6ff',
+          // Semantic accents (existing usage)
           blue: '#5e6ad2',
           green: '#10b981',
-          purple: '#8b5cf6',
+          purple: '#b8a6ff',
           sky: '#06b6d4',
           red: '#ef4444',
           yellow: '#f59e0b',

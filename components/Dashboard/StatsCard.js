@@ -1,11 +1,15 @@
 import { FiTrendingUp, FiTrendingDown, FiMinus } from 'react-icons/fi'
 
 export default function StatsCard({ label, value, change, trend, icon: Icon, color }) {
+  // Solid vibrant icon tiles with dark glyph — the color-ref pill look.
   const colorClasses = {
-    blue: 'bg-background-elevated text-text-primary',
-    yellow: 'bg-background-elevated text-text-primary',
-    green: 'bg-background-elevated text-text-primary',
-    purple: 'bg-background-elevated text-text-primary',
+    blue: 'bg-accent-lavender text-black',
+    yellow: 'bg-accent-yellow text-black',
+    green: 'bg-accent-lime text-black',
+    purple: 'bg-accent-lavender text-black',
+    lime: 'bg-accent-lime text-black',
+    coral: 'bg-accent-coral text-black',
+    lavender: 'bg-accent-lavender text-black',
   }
 
   const trendIcons = {
@@ -17,7 +21,7 @@ export default function StatsCard({ label, value, change, trend, icon: Icon, col
   return (
     <div className="card group cursor-pointer">
       <div className="flex items-start justify-between mb-4">
-        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${colorClasses[color]}`}>
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${colorClasses[color] || colorClasses.lime}`}>
           <Icon size={20} />
         </div>
         {trendIcons[trend]}

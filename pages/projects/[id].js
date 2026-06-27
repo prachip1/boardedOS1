@@ -294,7 +294,7 @@ export default function ProjectDetail() {
               {/* Owner row */}
               <div className="flex items-center justify-between py-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-full bg-accent text-white flex items-center justify-center font-semibold text-sm flex-shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-accent text-black flex items-center justify-center font-semibold text-sm flex-shrink-0">
                     {(project.owner_email || 'O').charAt(0).toUpperCase()}
                   </div>
                   <div className="min-w-0">

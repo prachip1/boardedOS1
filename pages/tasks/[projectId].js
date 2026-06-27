@@ -17,8 +17,17 @@ import {
 import { useAuth } from '../../contexts/AuthContext'
 
 const EMPTY_FORM = {
-  title: '', description: '', priority: 'medium', assignee: '', due_date: '', tags: '',
+  title: '', description: '', issue_type: 'task', priority: 'medium', assignee: '',
+  start_date: '', due_date: '', story_points: '', estimated_hours: '', tags: '',
 }
+
+// Jira-style issue types — label + emoji glyph used in the form/select.
+const ISSUE_TYPES = [
+  { value: 'task', label: 'Task' },
+  { value: 'bug', label: 'Bug' },
+  { value: 'story', label: 'Story' },
+  { value: 'epic', label: 'Epic' },
+]
 
 // Map a column name to a coarse status (kept consistent with the old board).
 const statusFromColumn = (name = '') => {
@@ -132,9 +141,13 @@ export default function ProjectBoard() {
     setTaskForm({
       title: task.title,
       description: task.description || '',
+      issue_type: task.issue_type || 'task',
       priority: task.priority,
       assignee: task.assignee || '',
+      start_date: task.start_date || '',
       due_date: task.due_date || '',
+      story_points: task.story_points ?? '',
+      estimated_hours: task.estimated_hours ?? '',
       tags: task.tags ? task.tags.join(', ') : '',
     })
     setShowTaskModal(true)
@@ -159,8 +172,12 @@ export default function ProjectBoard() {
       const payload = {
         title: taskForm.title,
         description: taskForm.description,
+        issue_type: taskForm.issue_type || 'task',
         priority: taskForm.priority,
+        start_date: taskForm.start_date || null,
         due_date: taskForm.due_date || null,
+        story_points: taskForm.story_points === '' ? null : Number(taskForm.story_points),
+        estimated_hours: taskForm.estimated_hours === '' ? null : Number(taskForm.estimated_hours),
         tags: tags.length ? tags : null,
         column_id: selectedColumn,
         project_id: projectId,
@@ -414,6 +431,18 @@ export default function ProjectBoard() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
+                    <label className="block text-sm font-medium text-text-primary mb-2">Issue Type</label>
+                    <select
+                      value={taskForm.issue_type} disabled={!editable}
+                      onChange={(e) => setTaskForm({ ...taskForm, issue_type: e.target.value })}
+                      className="select"
+                    >
+                      {ISSUE_TYPES.map((t) => (
+                        <option key={t.value} value={t.value}>{t.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium text-text-primary mb-2">Priority</label>
                     <select
                       value={taskForm.priority} disabled={!editable}
@@ -426,12 +455,42 @@ export default function ProjectBoard() {
                       <option value="urgent">Urgent</option>
                     </select>
                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-text-primary mb-2">Start Date</label>
+                    <input
+                      type="date" value={taskForm.start_date} disabled={!editable}
+                      onChange={(e) => setTaskForm({ ...taskForm, start_date: e.target.value })}
+                      className="input"
+                    />
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-text-primary mb-2">Due Date</label>
                     <input
                       type="date" value={taskForm.due_date} disabled={!editable}
                       onChange={(e) => setTaskForm({ ...taskForm, due_date: e.target.value })}
                       className="input"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-text-primary mb-2">Story Points</label>
+                    <input
+                      type="number" min="0" step="1" value={taskForm.story_points} disabled={!editable}
+                      onChange={(e) => setTaskForm({ ...taskForm, story_points: e.target.value })}
+                      className="input" placeholder="e.g. 3"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-text-primary mb-2">Estimate (hours)</label>
+                    <input
+                      type="number" min="0" step="0.5" value={taskForm.estimated_hours} disabled={!editable}
+                      onChange={(e) => setTaskForm({ ...taskForm, estimated_hours: e.target.value })}
+                      className="input" placeholder="e.g. 8"
                     />
                   </div>
                 </div>

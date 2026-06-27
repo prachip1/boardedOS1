@@ -1,12 +1,13 @@
 import { FiUsers, FiDollarSign, FiClock, FiCheckSquare, FiTrendingUp, FiX } from 'react-icons/fi'
 
 export default function WidgetCard({ widget, data, onRemove }) {
+  // Each widget gets a solid vibrant icon chip (dark glyph) from the
+  // secondary palette, plus a soft same-hue glow — the color-ref look.
   const widgetConfig = {
     clients: {
       icon: FiUsers,
-      color: 'text-blue-500',
-      bg: 'from-blue-500/10 to-blue-500/5',
-      border: 'border-blue-500/20',
+      chip: 'bg-accent-lavender',
+      glow: 'rgba(184, 166, 255, 0.12)',
       getValue: (data) => data?.clients?.active || 0,
       getLabel: (data) => {
         const total = data?.clients?.total || 0
@@ -15,9 +16,8 @@ export default function WidgetCard({ widget, data, onRemove }) {
     },
     invoices: {
       icon: FiDollarSign,
-      color: 'text-green-500',
-      bg: 'from-green-500/10 to-green-500/5',
-      border: 'border-green-500/20',
+      chip: 'bg-accent-lime',
+      glow: 'rgba(199, 247, 81, 0.12)',
       getValue: (data) => data?.invoices?.pending || 0,
       getLabel: (data) => {
         const total = data?.invoices?.totalPending || 0
@@ -26,9 +26,8 @@ export default function WidgetCard({ widget, data, onRemove }) {
     },
     time: {
       icon: FiClock,
-      color: 'text-purple-500',
-      bg: 'from-purple-500/10 to-purple-500/5',
-      border: 'border-purple-500/20',
+      chip: 'bg-accent-lavender',
+      glow: 'rgba(184, 166, 255, 0.12)',
       getValue: (data) => (data?.time?.billableHours || 0).toFixed(1),
       getLabel: (data) => {
         const hours = data?.time?.billableHours || 0
@@ -37,9 +36,8 @@ export default function WidgetCard({ widget, data, onRemove }) {
     },
     revenue: {
       icon: FiDollarSign,
-      color: 'text-yellow-500',
-      bg: 'from-yellow-500/10 to-yellow-500/5',
-      border: 'border-yellow-500/20',
+      chip: 'bg-accent-lime',
+      glow: 'rgba(199, 247, 81, 0.12)',
       getValue: (data) => {
         const revenue = data?.invoices?.totalRevenue || 0
         return revenue === 0 ? '0' : `$${revenue.toLocaleString()}`
@@ -48,9 +46,8 @@ export default function WidgetCard({ widget, data, onRemove }) {
     },
     tasks: {
       icon: FiCheckSquare,
-      color: 'text-cyan-500',
-      bg: 'from-cyan-500/10 to-cyan-500/5',
-      border: 'border-cyan-500/20',
+      chip: 'bg-accent-coral',
+      glow: 'rgba(255, 122, 89, 0.12)',
       getValue: (data) => data?.tasks?.inProgress || 0,
       getLabel: (data) => {
         const total = data?.tasks?.total || 0
@@ -60,17 +57,15 @@ export default function WidgetCard({ widget, data, onRemove }) {
     },
     tasks_completed: {
       icon: FiCheckSquare,
-      color: 'text-green-500',
-      bg: 'from-green-500/10 to-green-500/5',
-      border: 'border-green-500/20',
+      chip: 'bg-accent-lime',
+      glow: 'rgba(199, 247, 81, 0.12)',
       getValue: (data) => data?.tasks?.completed || 0,
       getLabel: () => 'Completed tasks'
     },
     tasks_high_priority: {
       icon: FiTrendingUp,
-      color: 'text-red-500',
-      bg: 'from-red-500/10 to-red-500/5',
-      border: 'border-red-500/20',
+      chip: 'bg-accent-coral',
+      glow: 'rgba(255, 122, 89, 0.12)',
       getValue: (data) => data?.tasks?.highPriority || 0,
       getLabel: () => 'High priority'
     },
@@ -82,28 +77,33 @@ export default function WidgetCard({ widget, data, onRemove }) {
   const label = config.getLabel(data)
 
   return (
-    <div className={`card bg-gradient-to-br ${config.bg} border ${config.border} group relative`}>
+    <div
+      className="card group relative overflow-hidden"
+      style={{ boxShadow: `inset 0 0 60px ${config.glow}` }}
+    >
       {onRemove && (
         <button
           onClick={() => onRemove(widget.id)}
-          className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-background-elevated rounded"
+          className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-background-elevated rounded z-10"
         >
           <FiX className="text-text-tertiary hover:text-red-500" size={14} />
         </button>
       )}
-      
-      <div className="flex items-center justify-between mb-3">
-        <Icon className={`${config.color}`} size={24} />
+
+      <div className="flex items-center justify-between mb-4">
+        <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${config.chip} text-black`}>
+          <Icon size={22} />
+        </div>
       </div>
-      
+
       <h3 className="text-text-secondary text-sm mb-2 font-medium">
         {widget.title}
       </h3>
-      
-      <p className={`text-3xl font-bold ${config.color} mb-1`}>
+
+      <p className="text-3xl font-bold text-text-primary mb-1">
         {value}
       </p>
-      
+
       <p className="text-xs text-text-tertiary">
         {label}
       </p>
