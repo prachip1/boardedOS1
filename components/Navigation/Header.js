@@ -1,12 +1,37 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { FiSearch, FiBell, FiSettings, FiLogOut, FiUser, FiMenu } from 'react-icons/fi'
 import { useAuth } from '../../contexts/AuthContext'
 import { useRouter } from 'next/router'
+import { getUnreadCount } from '../../lib/api/notifications'
 
 export default function Header({ onMenuClick }) {
   const { user, signOut } = useAuth()
   const router = useRouter()
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  useEffect(() => {
+    if (!user) return
+
+    let active = true
+
+    const loadUnreadCount = async () => {
+      try {
+        const count = await getUnreadCount()
+        if (active) setUnreadCount(count)
+      } catch (error) {
+        console.error('Error loading notification count:', error)
+      }
+    }
+
+    loadUnreadCount()
+    const interval = setInterval(loadUnreadCount, 60000)
+
+    return () => {
+      active = false
+      clearInterval(interval)
+    }
+  }, [user, router.asPath])
 
   const handleLogout = async () => {
     try {
@@ -46,9 +71,17 @@ export default function Header({ onMenuClick }) {
         {/* Right Side */}
         <div className="flex items-center gap-3">
           {/* Notifications */}
-          <button className="relative p-2 text-text-secondary hover:text-text-primary hover:bg-background-secondary rounded-md transition-colors">
+          <button
+            onClick={() => router.push('/notifications')}
+            className="relative p-2 text-text-secondary hover:text-text-primary hover:bg-background-secondary rounded-md transition-colors"
+            aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
+          >
             <FiBell size={20} />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-accent rounded-full"></span>
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 flex items-center justify-center bg-accent text-black text-[10px] font-semibold rounded-full">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
           </button>
 
           {/* Settings */}
