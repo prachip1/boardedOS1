@@ -5,7 +5,7 @@ import Layout from '../../components/Layout'
 import { FiPlus, FiSearch, FiFilter, FiDollarSign, FiCheckCircle, FiClock, FiXCircle, FiAlertCircle, FiLoader } from 'react-icons/fi'
 import { format, differenceInDays } from 'date-fns'
 import { getInvoices } from '../../lib/api/invoices'
-import { getCurrencySymbol } from '../../lib/currencies'
+import { getCurrencySymbol, DEFAULT_CURRENCY } from '../../lib/currencies'
 
 export default function Invoices() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -56,6 +56,18 @@ export default function Invoices() {
     overdue: invoices.filter(inv => inv.status === 'overdue').reduce((sum, inv) => sum + (parseFloat(inv.total) || 0), 0),
   }
 
+  // Use the most common currency among invoices for the summary cards
+  const statsCurrency = (() => {
+    const counts = {}
+    invoices.forEach(inv => {
+      const code = inv.currency || DEFAULT_CURRENCY
+      counts[code] = (counts[code] || 0) + 1
+    })
+    const sorted = Object.keys(counts).sort((a, b) => counts[b] - counts[a])
+    return sorted[0] || DEFAULT_CURRENCY
+  })()
+  const statsSymbol = getCurrencySymbol(statsCurrency)
+
   return (
     <>
       <Head>
@@ -87,7 +99,7 @@ export default function Invoices() {
                 <p className="text-text-secondary text-sm">Total</p>
               </div>
               <p className="text-2xl font-semibold text-text-primary">
-                ${stats.total.toFixed(2)}
+                {statsSymbol}{stats.total.toFixed(2)}
               </p>
             </div>
             <div className="card">
@@ -96,7 +108,7 @@ export default function Invoices() {
                 <p className="text-text-secondary text-sm">Paid</p>
               </div>
               <p className="text-2xl font-semibold text-green-500">
-                ${stats.paid.toFixed(2)}
+                {statsSymbol}{stats.paid.toFixed(2)}
               </p>
             </div>
             <div className="card">
@@ -105,7 +117,7 @@ export default function Invoices() {
                 <p className="text-text-secondary text-sm">Pending</p>
               </div>
               <p className="text-2xl font-semibold text-yellow-500">
-                ${stats.pending.toFixed(2)}
+                {statsSymbol}{stats.pending.toFixed(2)}
               </p>
             </div>
             <div className="card">
@@ -114,7 +126,7 @@ export default function Invoices() {
                 <p className="text-text-secondary text-sm">Overdue</p>
               </div>
               <p className="text-2xl font-semibold text-red-500">
-                ${stats.overdue.toFixed(2)}
+                {statsSymbol}{stats.overdue.toFixed(2)}
               </p>
             </div>
           </div>
