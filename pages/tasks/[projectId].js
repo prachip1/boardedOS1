@@ -4,6 +4,7 @@ import Head from 'next/head'
 import Link from 'next/link'
 import Layout from '../../components/Layout'
 import TaskColumn from '../../components/Tasks/TaskColumn'
+import { linkify } from '../../components/Tasks/linkify'
 import {
   FiArrowLeft, FiPlus, FiX, FiSave, FiLoader, FiSearch, FiSend,
   FiTrash2, FiLock, FiMessageSquare,
@@ -422,11 +423,19 @@ export default function ProjectBoard() {
 
                 <div>
                   <label className="block text-sm font-medium text-text-primary mb-2">Description</label>
-                  <textarea
-                    value={taskForm.description} rows="3" disabled={!editable}
-                    onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
-                    className="textarea" placeholder="Add more details…"
-                  />
+                  {editable ? (
+                    <textarea
+                      value={taskForm.description} rows="3"
+                      onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
+                      className="textarea" placeholder="Add more details…"
+                    />
+                  ) : (
+                    <div className="textarea whitespace-pre-wrap min-h-[80px]">
+                      {taskForm.description
+                        ? linkify(taskForm.description)
+                        : <span className="text-text-tertiary">No description</span>}
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

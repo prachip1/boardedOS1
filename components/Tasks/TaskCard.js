@@ -1,5 +1,6 @@
 import { FiClock, FiMessageSquare, FiTrash2, FiEdit, FiAlertCircle, FiCheckSquare, FiBookmark, FiZap, FiAlertOctagon } from 'react-icons/fi'
 import { format } from 'date-fns'
+import { linkify } from './linkify'
 
 // Jira-style issue type glyph + color (shown as a small chip on each card).
 const ISSUE_TYPE_META = {
@@ -72,8 +73,8 @@ export default function TaskCard({ task, onEdit, onDelete, canEdit = true, canDe
 
       {/* Description */}
       {task.description && (
-        <p className="text-xs text-text-secondary mb-3 line-clamp-2">
-          {task.description}
+        <p className="text-xs text-text-secondary mb-3 line-clamp-2 whitespace-pre-wrap">
+          {linkify(task.description)}
         </p>
       )}
 
