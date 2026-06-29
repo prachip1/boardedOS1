@@ -1,16 +1,16 @@
 // Trello-style label palette. Each color is light enough that dark text reads
 // cleanly on top, so a label can tint a whole card while staying legible.
 export const LABEL_COLORS = [
-  { name: 'green',  hex: '#4bce97' },
-  { name: 'yellow', hex: '#f5cd47' },
-  { name: 'orange', hex: '#fea362' },
-  { name: 'red',    hex: '#f87168' },
-  { name: 'purple', hex: '#b8a6ff' },
-  { name: 'blue',   hex: '#579dff' },
-  { name: 'sky',    hex: '#6cc3e0' },
-  { name: 'lime',   hex: '#c7f751' },
-  { name: 'pink',   hex: '#e774bb' },
-  { name: 'gray',   hex: '#9fadbc' },
+  { name: 'green',  hex: '#bbf7d0' },
+  { name: 'yellow', hex: '#fef08a' },
+  { name: 'orange', hex: '#fed7aa' },
+  { name: 'red',    hex: '#fecaca' },
+  { name: 'purple', hex: '#e9d5ff' },
+  { name: 'blue',   hex: '#bfdbfe' },
+  { name: 'sky',    hex: '#bae6fd' },
+  { name: 'lime',   hex: '#e4f9a8' },
+  { name: 'pink',   hex: '#fbcfe8' },
+  { name: 'gray',   hex: '#e2e8f0' },
 ]
 
 /**
