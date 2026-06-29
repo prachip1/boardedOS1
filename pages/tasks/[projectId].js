@@ -5,21 +5,25 @@ import Link from 'next/link'
 import Layout from '../../components/Layout'
 import TaskColumn from '../../components/Tasks/TaskColumn'
 import { linkify } from '../../components/Tasks/linkify'
+import { LABEL_COLORS, contrastText } from '../../components/Tasks/labels'
 import {
   FiArrowLeft, FiPlus, FiX, FiSave, FiLoader, FiSearch, FiSend,
-  FiTrash2, FiLock, FiMessageSquare,
+  FiTrash2, FiLock, FiMessageSquare, FiTag, FiCalendar, FiUsers,
+  FiCheckSquare, FiAlignLeft, FiPaperclip, FiDownload,
 } from 'react-icons/fi'
 import { formatDistanceToNow } from 'date-fns'
 import { getProject, getProjectMembers } from '../../lib/api/projects'
 import {
   getProjectColumns, getProjectTasks, createTask, updateTask, deleteTask,
   moveTask, createTaskColumn, getTaskComments, addTaskComment, deleteTaskComment,
+  getTaskAttachments, uploadTaskAttachment, deleteTaskAttachment,
 } from '../../lib/api/tasks'
 import { useAuth } from '../../contexts/AuthContext'
 
 const EMPTY_FORM = {
   title: '', description: '', issue_type: 'task', priority: 'medium', assignee: '',
   start_date: '', due_date: '', story_points: '', estimated_hours: '', tags: '',
+  label_color: '', label_text: '', checklist: [],
 }
 
 // Jira-style issue types — label + emoji glyph used in the form/select.
@@ -29,6 +33,14 @@ const ISSUE_TYPES = [
   { value: 'story', label: 'Story' },
   { value: 'epic', label: 'Epic' },
 ]
+
+// Human-readable file size for attachment rows.
+const formatBytes = (bytes) => {
+  if (!bytes && bytes !== 0) return ''
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
 
 // Map a column name to a coarse status (kept consistent with the old board).
 const statusFromColumn = (name = '') => {
@@ -59,11 +71,18 @@ export default function ProjectBoard() {
   const [editingTask, setEditingTask] = useState(null)
   const [taskForm, setTaskForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
+  // Which click-to-add panel is open in the modal: 'labels' | 'dates' | 'members' | 'checklist'
+  const [activePanel, setActivePanel] = useState(null)
+  const [newChecklistItem, setNewChecklistItem] = useState('')
 
   // Comments
   const [comments, setComments] = useState([])
   const [newComment, setNewComment] = useState('')
   const [commentBusy, setCommentBusy] = useState(false)
+
+  // Attachments
+  const [attachments, setAttachments] = useState([])
+  const [attachBusy, setAttachBusy] = useState(false)
 
   // Column modal
   const [showColumnModal, setShowColumnModal] = useState(false)
@@ -133,6 +152,8 @@ export default function ProjectBoard() {
     setEditingTask(null)
     setTaskForm(EMPTY_FORM)
     setComments([])
+    setAttachments([])
+    setActivePanel(null)
     setShowTaskModal(true)
   }
 
@@ -150,14 +171,24 @@ export default function ProjectBoard() {
       story_points: task.story_points ?? '',
       estimated_hours: task.estimated_hours ?? '',
       tags: task.tags ? task.tags.join(', ') : '',
+      label_color: task.label_color || '',
+      label_text: task.label_text || '',
+      checklist: Array.isArray(task.checklist) ? task.checklist : [],
     })
+    setActivePanel(null)
     setShowTaskModal(true)
-    // Load the discussion thread.
+    // Load the discussion thread + attachments.
     try {
       setComments(await getTaskComments(task.id))
     } catch (err) {
       console.error('Error loading comments:', err)
       setComments([])
+    }
+    try {
+      setAttachments(await getTaskAttachments(task.id))
+    } catch (err) {
+      console.error('Error loading attachments:', err)
+      setAttachments([])
     }
   }
 
@@ -180,6 +211,9 @@ export default function ProjectBoard() {
         story_points: taskForm.story_points === '' ? null : Number(taskForm.story_points),
         estimated_hours: taskForm.estimated_hours === '' ? null : Number(taskForm.estimated_hours),
         tags: tags.length ? tags : null,
+        label_color: taskForm.label_color || null,
+        label_text: taskForm.label_text || null,
+        checklist: taskForm.checklist || [],
         column_id: selectedColumn,
         project_id: projectId,
         status: col ? statusFromColumn(col.name) : 'todo',
@@ -210,6 +244,59 @@ export default function ProjectBoard() {
       setTasks((prev) => prev.filter((t) => t.id !== taskId))
     } catch (err) {
       alert(err.message || 'Could not delete task.')
+    }
+  }
+
+  // -------- checklist (inline, stored on the task) --------------------------
+  const addChecklistItem = (text) => {
+    const value = text.trim()
+    if (!value) return
+    const item = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, text: value, done: false }
+    setTaskForm((f) => ({ ...f, checklist: [...(f.checklist || []), item] }))
+    setNewChecklistItem('')
+  }
+  const toggleChecklistItem = (id) =>
+    setTaskForm((f) => ({
+      ...f,
+      checklist: (f.checklist || []).map((i) => (i.id === id ? { ...i, done: !i.done } : i)),
+    }))
+  const removeChecklistItem = (id) =>
+    setTaskForm((f) => ({ ...f, checklist: (f.checklist || []).filter((i) => i.id !== id) }))
+
+  // -------- attachments -----------------------------------------------------
+  const bumpAttachmentCount = (taskId, delta) =>
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId
+          ? { ...t, attachments: [{ count: Math.max(0, ((t.attachments?.[0]?.count) || 0) + delta) }] }
+          : t
+      )
+    )
+
+  const handleUploadAttachment = async (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = '' // allow re-selecting the same file later
+    if (!file || !editingTask) return
+    setAttachBusy(true)
+    try {
+      const added = await uploadTaskAttachment(editingTask.id, projectId, file)
+      setAttachments((prev) => [added, ...prev])
+      bumpAttachmentCount(editingTask.id, 1)
+    } catch (err) {
+      alert(err.message || 'Could not upload attachment.')
+    } finally {
+      setAttachBusy(false)
+    }
+  }
+
+  const handleDeleteAttachment = async (id) => {
+    if (!confirm('Remove this attachment?')) return
+    try {
+      await deleteTaskAttachment(id)
+      setAttachments((prev) => prev.filter((a) => a.id !== id))
+      if (editingTask) bumpAttachmentCount(editingTask.id, -1)
+    } catch (err) {
+      alert(err.message || 'Could not remove attachment.')
     }
   }
 
@@ -398,212 +485,407 @@ export default function ProjectBoard() {
           </div>
         </div>
 
-        {/* Task modal */}
+        {/* Task modal — Trello-style two-pane layout */}
         {showTaskModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="card max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-text-primary">
-                  {editingTask ? (editable ? 'Edit Task' : 'Task') : 'New Task'}
-                </h2>
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setShowTaskModal(false)}
+          >
+            <div
+              className="bg-background-elevated border border-border rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-lg"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Top bar: column chip + close */}
+              <div className="flex items-center justify-between px-6 py-3.5 border-b border-border">
+                <span className="inline-flex items-center gap-2 text-xs font-medium text-text-secondary bg-background-tertiary border border-border rounded-md px-3 py-1.5">
+                  {columns.find((c) => c.id === selectedColumn)?.name || 'Board'}
+                </span>
                 <button onClick={() => setShowTaskModal(false)} className="text-text-tertiary hover:text-text-primary">
-                  <FiX size={24} />
+                  <FiX size={22} />
                 </button>
               </div>
 
-              <form onSubmit={handleSaveTask} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-text-primary mb-2">Task Title *</label>
-                  <input
-                    type="text" value={taskForm.title} required disabled={!editable}
-                    onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
-                    className="input" placeholder="What needs to be done?"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-text-primary mb-2">Description</label>
-                  {editable ? (
-                    <textarea
-                      value={taskForm.description} rows="3"
-                      onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
-                      className="textarea" placeholder="Add more details…"
-                    />
-                  ) : (
-                    <div className="textarea whitespace-pre-wrap min-h-[80px]">
-                      {taskForm.description
-                        ? linkify(taskForm.description)
-                        : <span className="text-text-tertiary">No description</span>}
-                    </div>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-text-primary mb-2">Issue Type</label>
-                    <select
-                      value={taskForm.issue_type} disabled={!editable}
-                      onChange={(e) => setTaskForm({ ...taskForm, issue_type: e.target.value })}
-                      className="select"
-                    >
-                      {ISSUE_TYPES.map((t) => (
-                        <option key={t.value} value={t.value}>{t.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-text-primary mb-2">Priority</label>
-                    <select
-                      value={taskForm.priority} disabled={!editable}
-                      onChange={(e) => setTaskForm({ ...taskForm, priority: e.target.value })}
-                      className="select"
-                    >
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
-                      <option value="urgent">Urgent</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-text-primary mb-2">Start Date</label>
-                    <input
-                      type="date" value={taskForm.start_date} disabled={!editable}
-                      onChange={(e) => setTaskForm({ ...taskForm, start_date: e.target.value })}
-                      className="input"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-text-primary mb-2">Due Date</label>
-                    <input
-                      type="date" value={taskForm.due_date} disabled={!editable}
-                      onChange={(e) => setTaskForm({ ...taskForm, due_date: e.target.value })}
-                      className="input"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-text-primary mb-2">Story Points</label>
-                    <input
-                      type="number" min="0" step="1" value={taskForm.story_points} disabled={!editable}
-                      onChange={(e) => setTaskForm({ ...taskForm, story_points: e.target.value })}
-                      className="input" placeholder="e.g. 3"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-text-primary mb-2">Estimate (hours)</label>
-                    <input
-                      type="number" min="0" step="0.5" value={taskForm.estimated_hours} disabled={!editable}
-                      onChange={(e) => setTaskForm({ ...taskForm, estimated_hours: e.target.value })}
-                      className="input" placeholder="e.g. 8"
-                    />
-                  </div>
-                </div>
-
-                {/* Assignee — only managers can set it; others see it read-only */}
-                <div>
-                  <label className="block text-sm font-medium text-text-primary mb-2">Assignee</label>
-                  {canManage ? (
-                    <select
-                      value={taskForm.assignee}
-                      onChange={(e) => setTaskForm({ ...taskForm, assignee: e.target.value })}
-                      className="select"
-                    >
-                      <option value="">Unassigned</option>
-                      {assigneeOptions.map((o) => (
-                        <option key={o.email} value={o.email}>
-                          {o.email}{o.you ? ' (you)' : ''}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <p className="input flex items-center text-text-secondary">
-                      {taskForm.assignee || 'Unassigned'}
-                      <span className="text-xs text-text-tertiary ml-2">· only admins can change this</span>
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-text-primary mb-2">Tags (comma separated)</label>
-                  <input
-                    type="text" value={taskForm.tags} disabled={!editable}
-                    onChange={(e) => setTaskForm({ ...taskForm, tags: e.target.value })}
-                    className="input" placeholder="design, urgent, review"
-                  />
-                </div>
-
-                {editable && (
-                  <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
-                    <button type="button" onClick={() => setShowTaskModal(false)} className="btn btn-secondary">
-                      Cancel
-                    </button>
-                    <button type="submit" className="btn btn-primary" disabled={saving}>
-                      {saving ? <FiLoader className="animate-spin" size={16} /> : <FiSave size={16} />}
-                      {editingTask ? 'Update Task' : 'Create Task'}
-                    </button>
-                  </div>
-                )}
-              </form>
-
-              {/* Discussion — only on existing tasks */}
-              {editingTask && (
-                <div className="mt-6 pt-6 border-t border-border">
-                  <h3 className="text-sm font-semibold text-text-primary mb-4 flex items-center gap-2">
-                    <FiMessageSquare size={15} /> Discussion
-                    <span className="text-text-tertiary font-normal">({comments.length})</span>
-                  </h3>
-
-                  <div className="space-y-3 mb-4 max-h-60 overflow-y-auto">
-                    {comments.length === 0 && (
-                      <p className="text-sm text-text-tertiary">No comments yet. Start the discussion.</p>
+              <div className="flex flex-1 min-h-0 flex-col md:flex-row">
+                {/* LEFT — main content */}
+                <div className="flex-1 min-w-0 overflow-y-auto p-6">
+                  <form onSubmit={handleSaveTask} className="space-y-5">
+                    {/* Title */}
+                    {editable ? (
+                      <input
+                        type="text" value={taskForm.title} required
+                        onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
+                        className="w-full bg-transparent text-2xl font-semibold text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-0 border-0 px-0"
+                        placeholder="Task title…"
+                      />
+                    ) : (
+                      <h2 className="text-2xl font-semibold text-text-primary break-words">{taskForm.title}</h2>
                     )}
-                    {comments.map((c) => (
-                      <div key={c.id} className="flex gap-3 group">
-                        <div className="w-8 h-8 rounded-full bg-accent/20 text-accent flex items-center justify-center text-xs font-semibold uppercase flex-shrink-0">
-                          {(c.author_email || '?').charAt(0)}
+
+                    {/* Click-to-add action buttons */}
+                    {editable && (
+                      <div className="flex flex-wrap gap-2">
+                        <button type="button" onClick={() => setActivePanel((p) => (p === 'labels' ? null : 'labels'))}
+                          className="inline-flex items-center gap-2 text-sm text-text-secondary bg-background-tertiary hover:bg-border-hover border border-border rounded-md px-3 py-1.5 transition-colors">
+                          <FiTag size={14} /> Labels
+                        </button>
+                        <button type="button" onClick={() => setActivePanel((p) => (p === 'dates' ? null : 'dates'))}
+                          className="inline-flex items-center gap-2 text-sm text-text-secondary bg-background-tertiary hover:bg-border-hover border border-border rounded-md px-3 py-1.5 transition-colors">
+                          <FiCalendar size={14} /> Dates
+                        </button>
+                        <button type="button" onClick={() => setActivePanel((p) => (p === 'checklist' ? null : 'checklist'))}
+                          className="inline-flex items-center gap-2 text-sm text-text-secondary bg-background-tertiary hover:bg-border-hover border border-border rounded-md px-3 py-1.5 transition-colors">
+                          <FiCheckSquare size={14} /> Checklist
+                        </button>
+                        {canManage && (
+                          <button type="button" onClick={() => setActivePanel((p) => (p === 'members' ? null : 'members'))}
+                            className="inline-flex items-center gap-2 text-sm text-text-secondary bg-background-tertiary hover:bg-border-hover border border-border rounded-md px-3 py-1.5 transition-colors">
+                            <FiUsers size={14} /> Members
+                          </button>
+                        )}
+                        <button type="button" onClick={() => setActivePanel((p) => (p === 'attachments' ? null : 'attachments'))}
+                          className="inline-flex items-center gap-2 text-sm text-text-secondary bg-background-tertiary hover:bg-border-hover border border-border rounded-md px-3 py-1.5 transition-colors">
+                          <FiPaperclip size={14} /> Attachment
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Labels */}
+                    {(taskForm.label_color || (editable && activePanel === 'labels')) && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-2 text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+                          <FiTag size={13} /> Labels
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-medium text-text-primary truncate">{c.author_email || 'Member'}</span>
-                            <span className="text-xs text-text-tertiary">
-                              {c.created_at ? formatDistanceToNow(new Date(c.created_at), { addSuffix: true }) : ''}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {taskForm.label_color ? (
+                            <span className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium"
+                              style={{ backgroundColor: taskForm.label_color, color: contrastText(taskForm.label_color) }}>
+                              {taskForm.label_text || 'Label'}
+                              {editable && (
+                                <button type="button" onClick={() => setTaskForm({ ...taskForm, label_color: '', label_text: '' })} className="opacity-70 hover:opacity-100">
+                                  <FiX size={13} />
+                                </button>
+                              )}
                             </span>
-                            {c.user_id === user?.id && (
-                              <button
-                                onClick={() => handleDeleteComment(c.id)}
-                                className="opacity-0 group-hover:opacity-100 text-text-tertiary hover:text-red-500 transition-all"
-                              >
-                                <FiTrash2 size={12} />
-                              </button>
-                            )}
+                          ) : (
+                            <span className="text-sm text-text-tertiary">No label</span>
+                          )}
+                        </div>
+
+                        {editable && activePanel === 'labels' && (
+                          <div className="mt-3 p-3 bg-background-tertiary border border-border rounded-lg max-w-sm">
+                            <div className="grid grid-cols-5 gap-2 mb-3">
+                              {LABEL_COLORS.map((c) => (
+                                <button key={c.hex} type="button" title={c.name}
+                                  onClick={() => setTaskForm({ ...taskForm, label_color: c.hex })}
+                                  className={`h-8 rounded-md transition-transform hover:scale-105 ${taskForm.label_color === c.hex ? 'ring-2 ring-white ring-offset-2 ring-offset-background-tertiary' : ''}`}
+                                  style={{ backgroundColor: c.hex }}
+                                />
+                              ))}
+                            </div>
+                            <input type="text" value={taskForm.label_text} placeholder="Label text (optional)"
+                              onChange={(e) => setTaskForm({ ...taskForm, label_text: e.target.value })}
+                              className="input mb-2" />
+                            <button type="button" onClick={() => setTaskForm({ ...taskForm, label_color: '', label_text: '' })}
+                              className="text-xs text-text-tertiary hover:text-text-primary">Clear label</button>
                           </div>
-                          <p className="text-sm text-text-secondary whitespace-pre-wrap break-words">{c.comment}</p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Dates */}
+                    {((taskForm.start_date || taskForm.due_date) || (editable && activePanel === 'dates')) && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-2 text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+                          <FiCalendar size={13} /> Dates
+                        </div>
+                        {editable && activePanel === 'dates' ? (
+                          <div className="grid grid-cols-2 gap-3 max-w-md">
+                            <div>
+                              <label className="block text-xs text-text-tertiary mb-1">Start</label>
+                              <input type="date" value={taskForm.start_date}
+                                onChange={(e) => setTaskForm({ ...taskForm, start_date: e.target.value })} className="input" />
+                            </div>
+                            <div>
+                              <label className="block text-xs text-text-tertiary mb-1">Due</label>
+                              <input type="date" value={taskForm.due_date}
+                                onChange={(e) => setTaskForm({ ...taskForm, due_date: e.target.value })} className="input" />
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-sm text-text-secondary">
+                            {taskForm.start_date && <span>{taskForm.start_date}</span>}
+                            {taskForm.start_date && taskForm.due_date && <span> → </span>}
+                            {taskForm.due_date && <span>{taskForm.due_date}</span>}
+                            {!taskForm.start_date && !taskForm.due_date && <span className="text-text-tertiary">No dates set</span>}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Members / Assignee */}
+                    {((taskForm.assignee) || (editable && activePanel === 'members')) && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-2 text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+                          <FiUsers size={13} /> Members
+                        </div>
+                        {canManage && activePanel === 'members' ? (
+                          <select value={taskForm.assignee}
+                            onChange={(e) => setTaskForm({ ...taskForm, assignee: e.target.value })}
+                            className="select max-w-md">
+                            <option value="">Unassigned</option>
+                            {assigneeOptions.map((o) => (
+                              <option key={o.email} value={o.email}>{o.email}{o.you ? ' (you)' : ''}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <div className="flex items-center gap-2 text-sm text-text-secondary">
+                            {taskForm.assignee ? (
+                              <>
+                                <span className="w-7 h-7 rounded-full bg-accent/20 text-accent flex items-center justify-center text-xs font-semibold uppercase">
+                                  {taskForm.assignee.charAt(0)}
+                                </span>
+                                {taskForm.assignee}
+                              </>
+                            ) : (
+                              <span className="text-text-tertiary">Unassigned</span>
+                            )}
+                            {!canManage && <span className="text-xs text-text-tertiary ml-1">· only admins can change this</span>}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Description */}
+                    <div>
+                      <label className="flex items-center gap-2 mb-2 text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+                        <FiAlignLeft size={13} /> Description
+                      </label>
+                      {editable ? (
+                        <textarea
+                          value={taskForm.description} rows="4"
+                          onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
+                          className="textarea" placeholder="Add a more detailed description…"
+                        />
+                      ) : (
+                        <div className="textarea whitespace-pre-wrap min-h-[80px]">
+                          {taskForm.description
+                            ? linkify(taskForm.description)
+                            : <span className="text-text-tertiary">No description</span>}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Checklist */}
+                    {(taskForm.checklist.length > 0 || (editable && activePanel === 'checklist')) && (
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+                            <FiCheckSquare size={13} /> Checklist
+                          </span>
+                          {taskForm.checklist.length > 0 && (
+                            <span className="text-xs text-text-tertiary">
+                              {taskForm.checklist.filter((i) => i.done).length}/{taskForm.checklist.length}
+                            </span>
+                          )}
+                        </div>
+
+                        {taskForm.checklist.length > 0 && (
+                          <div className="h-1.5 rounded-full bg-background-tertiary mb-3 overflow-hidden">
+                            <div className="h-full bg-accent-green transition-all"
+                              style={{ width: `${Math.round((taskForm.checklist.filter((i) => i.done).length / taskForm.checklist.length) * 100)}%` }} />
+                          </div>
+                        )}
+
+                        <div className="space-y-1.5">
+                          {taskForm.checklist.map((item) => (
+                            <div key={item.id} className="flex items-center gap-2 group">
+                              <input type="checkbox" checked={item.done} disabled={!editable}
+                                onChange={() => toggleChecklistItem(item.id)}
+                                className="w-4 h-4 rounded accent-accent-green cursor-pointer flex-shrink-0" />
+                              <span className={`flex-1 text-sm ${item.done ? 'line-through text-text-tertiary' : 'text-text-secondary'}`}>
+                                {item.text}
+                              </span>
+                              {editable && (
+                                <button type="button" onClick={() => removeChecklistItem(item.id)}
+                                  className="opacity-0 group-hover:opacity-100 text-text-tertiary hover:text-red-500 transition-all">
+                                  <FiTrash2 size={13} />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+
+                        {editable && (
+                          <div className="flex gap-2 mt-2">
+                            <input type="text" value={newChecklistItem}
+                              onChange={(e) => setNewChecklistItem(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addChecklistItem(newChecklistItem) } }}
+                              className="input flex-1" placeholder="Add an item…" />
+                            <button type="button" onClick={() => addChecklistItem(newChecklistItem)}
+                              className="btn btn-secondary" disabled={!newChecklistItem.trim()}>
+                              <FiPlus size={15} /> Add
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Attachments */}
+                    {(attachments.length > 0 || (editable && activePanel === 'attachments')) && (
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+                            <FiPaperclip size={13} /> Attachments
+                          </span>
+                          {editable && editingTask && (
+                            <label className={`inline-flex items-center gap-2 text-xs cursor-pointer text-text-secondary hover:text-text-primary ${attachBusy ? 'opacity-50 pointer-events-none' : ''}`}>
+                              {attachBusy ? <FiLoader className="animate-spin" size={13} /> : <FiPlus size={13} />} Add file
+                              <input type="file" className="hidden" onChange={handleUploadAttachment} disabled={attachBusy} />
+                            </label>
+                          )}
+                        </div>
+
+                        {!editingTask ? (
+                          <p className="text-sm text-text-tertiary">Save the task first, then you can attach files.</p>
+                        ) : attachments.length === 0 ? (
+                          <p className="text-sm text-text-tertiary">No attachments yet.</p>
+                        ) : (
+                          <div className="space-y-1.5">
+                            {attachments.map((a) => (
+                              <div key={a.id} className="flex items-center gap-3 p-2 rounded-md bg-background-tertiary border border-border group">
+                                <FiPaperclip size={14} className="text-text-tertiary flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <a href={a.public_url} target="_blank" rel="noopener noreferrer"
+                                    className="block text-sm text-text-primary truncate hover:text-accent">
+                                    {a.name}
+                                  </a>
+                                  <span className="text-xs text-text-tertiary">{formatBytes(a.size)}</span>
+                                </div>
+                                <a href={a.public_url} target="_blank" rel="noopener noreferrer"
+                                  className="p-1 text-text-tertiary hover:text-accent" title="Open / download">
+                                  <FiDownload size={14} />
+                                </a>
+                                {(a.user_id === user?.id || canManage) && (
+                                  <button type="button" onClick={() => handleDeleteAttachment(a.id)}
+                                    className="p-1 text-text-tertiary hover:text-red-500" title="Remove">
+                                    <FiTrash2 size={14} />
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Details — issue type / priority / points / estimate / tags */}
+                    <div className="pt-4 border-t border-border space-y-4">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">Details</div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs text-text-tertiary mb-1">Issue Type</label>
+                          <select value={taskForm.issue_type} disabled={!editable}
+                            onChange={(e) => setTaskForm({ ...taskForm, issue_type: e.target.value })} className="select">
+                            {ISSUE_TYPES.map((t) => (<option key={t.value} value={t.value}>{t.label}</option>))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-text-tertiary mb-1">Priority</label>
+                          <select value={taskForm.priority} disabled={!editable}
+                            onChange={(e) => setTaskForm({ ...taskForm, priority: e.target.value })} className="select">
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                            <option value="urgent">Urgent</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-text-tertiary mb-1">Story Points</label>
+                          <input type="number" min="0" step="1" value={taskForm.story_points} disabled={!editable}
+                            onChange={(e) => setTaskForm({ ...taskForm, story_points: e.target.value })} className="input" placeholder="e.g. 3" />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-text-tertiary mb-1">Estimate (hours)</label>
+                          <input type="number" min="0" step="0.5" value={taskForm.estimated_hours} disabled={!editable}
+                            onChange={(e) => setTaskForm({ ...taskForm, estimated_hours: e.target.value })} className="input" placeholder="e.g. 8" />
                         </div>
                       </div>
-                    ))}
-                  </div>
+                      <div>
+                        <label className="block text-xs text-text-tertiary mb-1">Tags (comma separated)</label>
+                        <input type="text" value={taskForm.tags} disabled={!editable}
+                          onChange={(e) => setTaskForm({ ...taskForm, tags: e.target.value })} className="input" placeholder="design, urgent, review" />
+                      </div>
+                    </div>
 
-                  {canContribute ? (
-                    <form onSubmit={handleAddComment} className="flex gap-2">
-                      <input
-                        type="text" value={newComment}
-                        onChange={(e) => setNewComment(e.target.value)}
-                        className="input flex-1" placeholder="Write a comment…"
-                      />
-                      <button type="submit" className="btn btn-primary" disabled={commentBusy || !newComment.trim()}>
-                        {commentBusy ? <FiLoader className="animate-spin" size={16} /> : <FiSend size={16} />}
-                      </button>
-                    </form>
+                    {editable && (
+                      <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
+                        <button type="button" onClick={() => setShowTaskModal(false)} className="btn btn-secondary">Cancel</button>
+                        <button type="submit" className="btn btn-primary" disabled={saving}>
+                          {saving ? <FiLoader className="animate-spin" size={16} /> : <FiSave size={16} />}
+                          {editingTask ? 'Update Task' : 'Create Task'}
+                        </button>
+                      </div>
+                    )}
+                  </form>
+                </div>
+
+                {/* RIGHT — comments & activity */}
+                <div className="w-full md:w-80 flex-shrink-0 border-t md:border-t-0 md:border-l border-border bg-background-secondary p-5 overflow-y-auto">
+                  <h3 className="text-sm font-semibold text-text-primary mb-4 flex items-center gap-2">
+                    <FiMessageSquare size={15} /> Comments and activity
+                    {editingTask && <span className="text-text-tertiary font-normal">({comments.length})</span>}
+                  </h3>
+
+                  {!editingTask ? (
+                    <p className="text-sm text-text-tertiary">Comments become available once you create the task.</p>
                   ) : (
-                    <p className="text-xs text-text-tertiary">View-only access — you can&apos;t comment.</p>
+                    <>
+                      {canContribute && (
+                        <form onSubmit={handleAddComment} className="flex gap-2 mb-4">
+                          <input type="text" value={newComment}
+                            onChange={(e) => setNewComment(e.target.value)}
+                            className="input flex-1" placeholder="Write a comment…" />
+                          <button type="submit" className="btn btn-primary" disabled={commentBusy || !newComment.trim()}>
+                            {commentBusy ? <FiLoader className="animate-spin" size={16} /> : <FiSend size={16} />}
+                          </button>
+                        </form>
+                      )}
+
+                      <div className="space-y-3">
+                        {comments.length === 0 && (
+                          <p className="text-sm text-text-tertiary">No comments yet. Start the discussion.</p>
+                        )}
+                        {comments.map((c) => (
+                          <div key={c.id} className="flex gap-3 group">
+                            <div className="w-8 h-8 rounded-full bg-accent/20 text-accent flex items-center justify-center text-xs font-semibold uppercase flex-shrink-0">
+                              {(c.author_email || '?').charAt(0)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-medium text-text-primary truncate">{c.author_email || 'Member'}</span>
+                                <span className="text-xs text-text-tertiary">
+                                  {c.created_at ? formatDistanceToNow(new Date(c.created_at), { addSuffix: true }) : ''}
+                                </span>
+                                {c.user_id === user?.id && (
+                                  <button onClick={() => handleDeleteComment(c.id)}
+                                    className="opacity-0 group-hover:opacity-100 text-text-tertiary hover:text-red-500 transition-all">
+                                    <FiTrash2 size={12} />
+                                  </button>
+                                )}
+                              </div>
+                              <p className="text-sm text-text-secondary whitespace-pre-wrap break-words">{c.comment}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {!canContribute && (
+                        <p className="text-xs text-text-tertiary mt-3">View-only access — you can&apos;t comment.</p>
+                      )}
+                    </>
                   )}
                 </div>
-              )}
+              </div>
             </div>
           </div>
         )}
