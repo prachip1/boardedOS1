@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Layout from '../../components/Layout'
-import { FiCheckCircle, FiAlertCircle, FiDollarSign, FiMessageSquare, FiClock, FiCheck, FiTrash2, FiLoader, FiFileText, FiBell } from 'react-icons/fi'
+import { FiCheckCircle, FiAlertCircle, FiDollarSign, FiMessageSquare, FiClock, FiCheck, FiTrash2, FiLoader, FiFileText, FiBell, FiTrello, FiFolder } from 'react-icons/fi'
 import { formatDistanceToNow } from 'date-fns'
 import { getNotifications, markAsRead, markAllAsRead, deleteNotification } from '../../lib/api/notifications'
 
 export default function Notifications() {
+  const router = useRouter()
   const [notifications, setNotifications] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
@@ -61,6 +63,8 @@ export default function Notifications() {
     payment: { icon: FiCheckCircle, color: 'text-green-500', bg: 'bg-green-500/10' },
     comment: { icon: FiMessageSquare, color: 'text-purple-500', bg: 'bg-purple-500/10' },
     deadline: { icon: FiClock, color: 'text-orange-500', bg: 'bg-orange-500/10' },
+    task: { icon: FiTrello, color: 'text-accent', bg: 'bg-accent/10' },
+    project: { icon: FiFolder, color: 'text-blue-500', bg: 'bg-blue-500/10' },
     general: { icon: FiAlertCircle, color: 'text-text-tertiary', bg: 'bg-background-secondary' },
   }
 
@@ -160,7 +164,10 @@ export default function Notifications() {
                     className={`card group cursor-pointer hover:shadow-md transition-all ${
                       !notification.read ? 'border-l-4 border-accent' : ''
                     }`}
-                    onClick={() => !notification.read && handleMarkAsRead(notification.id)}
+                    onClick={() => {
+                      if (!notification.read) handleMarkAsRead(notification.id)
+                      if (notification.link) router.push(notification.link)
+                    }}
                   >
                     <div className="flex items-start gap-4">
                       <div className={`w-10 h-10 rounded-lg ${config.bg} flex items-center justify-center flex-shrink-0`}>

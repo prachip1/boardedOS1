@@ -18,6 +18,7 @@ import {
   moveTask, createTaskColumn, getTaskComments, addTaskComment, deleteTaskComment,
   getTaskAttachments, uploadTaskAttachment, deleteTaskAttachment,
 } from '../../lib/api/tasks'
+import { notifyProject } from '../../lib/api/notifications'
 import { useAuth } from '../../contexts/AuthContext'
 
 const EMPTY_FORM = {
@@ -107,6 +108,14 @@ export default function ProjectBoard() {
   const canDeleteTask = useCallback((task) => {
     return canManage || task.user_id === user?.id
   }, [canManage, user])
+
+  // Short actor name + a best-effort fan-out so every project member sees the
+  // activity. Never throws — a failed notification must not break the action.
+  const actorName = (user?.email || 'Someone').split('@')[0]
+  const notifyBoard = (type, title, message) => {
+    notifyProject(projectId, type, title, message, `/tasks/${projectId}`)
+      .catch((err) => console.error('Notification failed:', err))
+  }
 
   // Candidate assignees: project owner (you, if owner) + invited members.
   const assigneeOptions = Array.from(
@@ -224,9 +233,11 @@ export default function ProjectBoard() {
       if (editingTask) {
         const updated = await updateTask(editingTask.id, payload)
         setTasks((prev) => prev.map((t) => (t.id === updated.id ? { ...t, ...updated } : t)))
+        notifyBoard('task', 'Task updated', `${actorName} updated "${payload.title}"`)
       } else {
         const created = await createTask(payload)
         setTasks((prev) => [...prev, created])
+        notifyBoard('task', 'Task created', `${actorName} added "${payload.title}"`)
       }
       setShowTaskModal(false)
     } catch (err) {
@@ -239,9 +250,11 @@ export default function ProjectBoard() {
 
   const handleDeleteTask = async (taskId) => {
     if (!confirm('Delete this task?')) return
+    const removed = tasks.find((t) => t.id === taskId)
     try {
       await deleteTask(taskId)
       setTasks((prev) => prev.filter((t) => t.id !== taskId))
+      notifyBoard('task', 'Task deleted', `${actorName} deleted "${removed?.title || 'a task'}"`)
     } catch (err) {
       alert(err.message || 'Could not delete task.')
     }
@@ -282,6 +295,7 @@ export default function ProjectBoard() {
       const added = await uploadTaskAttachment(editingTask.id, projectId, file)
       setAttachments((prev) => [added, ...prev])
       bumpAttachmentCount(editingTask.id, 1)
+      notifyBoard('task', 'Attachment added', `${actorName} attached "${file.name}" to "${editingTask.title}"`)
     } catch (err) {
       alert(err.message || 'Could not upload attachment.')
     } finally {
@@ -320,6 +334,7 @@ export default function ProjectBoard() {
     )
     try {
       await moveTask(taskId, newColumnId, 0, newStatus)
+      notifyBoard('task', 'Task moved', `${actorName} moved "${task.title}" to ${newCol?.name || 'another column'}`)
     } catch (err) {
       console.error('Error moving task:', err)
       setTasks(prev) // revert
@@ -335,6 +350,7 @@ export default function ProjectBoard() {
       const added = await addTaskComment(editingTask.id, newComment.trim())
       setComments((prev) => [...prev, added])
       setNewComment('')
+      notifyBoard('comment', 'New comment', `${actorName} commented on "${editingTask.title}"`)
       // bump the card's comment count locally
       setTasks((prev) =>
         prev.map((t) =>

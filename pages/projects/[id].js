@@ -13,6 +13,7 @@ import {
   updateProjectMemberRole, removeProjectMember, notifyMemberInvited
 } from '../../lib/api/projects'
 import { getFiles, uploadAndCreateFile, deleteFileComplete } from '../../lib/api/files'
+import { notifyProject } from '../../lib/api/notifications'
 import { useAuth } from '../../contexts/AuthContext'
 
 const formatSize = (bytes = 0) => {
@@ -51,6 +52,13 @@ export default function ProjectDetail() {
 
   const isOwner = project && user && project.user_id === user.id
 
+  // Short actor name + best-effort fan-out to all project members. Never throws.
+  const actorName = (user?.email || 'Someone').split('@')[0]
+  const notifyBoard = (type, title, message) => {
+    notifyProject(id, type, title, message, `/projects/${id}`)
+      .catch((err) => console.error('Notification failed:', err))
+  }
+
   const load = useCallback(async () => {
     try {
       setLoading(true)
@@ -77,6 +85,7 @@ export default function ProjectDetail() {
         await uploadAndCreateFile(file, { projectId: id, clientId: project?.client_id || null })
       }
       setFiles(await getFiles({ projectId: id }))
+      notifyBoard('project', 'File uploaded', `${actorName} uploaded ${arr.length === 1 ? `"${arr[0].name}"` : `${arr.length} files`}`)
     } catch (err) {
       alert(err.message || 'Upload failed. Make sure the "files" storage bucket exists (run files-collab.sql).')
     } finally {
@@ -86,9 +95,11 @@ export default function ProjectDetail() {
 
   const handleDeleteFile = async (fileId) => {
     if (!confirm('Delete this file?')) return
+    const removed = files.find((f) => f.id === fileId)
     try {
       await deleteFileComplete(fileId)
       setFiles((prev) => prev.filter((f) => f.id !== fileId))
+      notifyBoard('project', 'File removed', `${actorName} removed "${removed?.name || 'a file'}"`)
     } catch (err) {
       alert(err.message || 'Could not delete file.')
     }
@@ -112,6 +123,7 @@ export default function ProjectDetail() {
         role: inviteRole,
         inviterEmail: user?.email,
       })
+      notifyBoard('project', 'Member invited', `${actorName} invited ${inviteEmail.trim().toLowerCase()} as ${inviteRole}`)
       setInviteEmail('')
       setInviteRole('member')
       const mem = await getProjectMembers(id)
@@ -126,7 +138,9 @@ export default function ProjectDetail() {
   const handleRoleChange = async (memberId, role) => {
     try {
       await updateProjectMemberRole(memberId, role)
+      const target = members.find((m) => m.id === memberId)
       setMembers(members.map(m => (m.id === memberId ? { ...m, role } : m)))
+      notifyBoard('project', 'Role changed', `${actorName} changed ${target?.email || 'a member'}'s role to ${role}`)
     } catch (err) {
       alert(err.message)
     }
@@ -134,9 +148,11 @@ export default function ProjectDetail() {
 
   const handleRemoveMember = async (memberId) => {
     if (!confirm('Remove this member from the project?')) return
+    const target = members.find((m) => m.id === memberId)
     try {
       await removeProjectMember(memberId)
       setMembers(members.filter(m => m.id !== memberId))
+      notifyBoard('project', 'Member removed', `${actorName} removed ${target?.email || 'a member'} from the project`)
     } catch (err) {
       alert(err.message)
     }
